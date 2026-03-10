@@ -84,6 +84,7 @@ sequenceDiagram
 
 ```
 ├── index.html          # 主页面 (HTML + CSS)
+├── styles.css          # 样式文件
 ├── app.js              # 主控制器：会话管理、消息收发、事件绑定
 ├── markdown.js         # 轻量 Markdown 解析器
 ├── cot.js              # CoT 推理面板
@@ -111,7 +112,7 @@ function renderMarkdown(markdown) { ... }
 ```
 
 支持的语法：
-- `# H1` / `## H2` → 带品牌色左边框装饰的标题
+- `# H1` / `## H2` → 带品牌色左边框装饰的标题（H1: 4px, H2: 3px）
 - `![alt](url)` → Image_Block（骨架屏 + 错误态 + 点击全屏 + alt 描述文字）
 - `| col | col |` → 带交替行背景色的表格
 - `` ```code``` `` → 深色背景代码块
@@ -121,7 +122,7 @@ function renderMarkdown(markdown) { ... }
 - `> blockquote` → 引用块
 - `⚠️ 注意事项` 行 → 橙色左边框高亮卡片
 - `💡 专家建议` 行 → 蓝色左边框高亮卡片
-- `⚙️` 行 → 设置/配置类样式
+- `⚙️` 行 → 设置/配置类视觉样式
 - `📚 参考文档` 区域 → 引用文档列表
 - `📖 来源：{文档名称}` → 来源标注区域
 
@@ -184,6 +185,9 @@ function createConfirmationCard(operationType, params, onConfirm, onCancel) { ..
 | 取电限制调整 | "import limit", "取电限制" | value: 0-100 (A) |
 | 能量输出策略 | "energy output", "输出策略" | strategy: Self/Export |
 | 馈网限制调整 | "export limit", "馈网限制" | value: 0-100 (kW) |
+
+缺少参数处理：
+- 检测到意图但参数不完整时（`params: null`），触发追问消息引导用户补充缺失参数
 
 ### 4. Role_Selector (`role.js`)
 
@@ -381,139 +385,139 @@ const PCS_SCENARIOS = {
 
 *For any* Markdown 字符串，若包含 `![alt](url)` 语法，`renderMarkdown` 的输出 HTML 应包含一个 `<img>` 元素，其 `src` 属性等于 `url`，`alt` 属性等于 `alt`。
 
-**Validates: Requirements 1.1**
+**Validates: Requirements 1.1, 1.7**
 
-### Property 2: 图片缩放范围约束
-
-*For any* 缩放操作序列（pinch-zoom 手势产生的 scale 值），最终应用到图片的缩放比例应始终被约束在 [1, 3] 范围内。
-
-**Validates: Requirements 1.4**
-
-### Property 3: CoT 面板折叠切换
-
-*For any* CoT 面板实例，点击标题区域应切换面板的展开/折叠状态——若当前折叠则展开，若当前展开则折叠。
-
-**Validates: Requirements 2.2**
-
-### Property 4: CoT 步骤状态图标映射
-
-*For any* CoT 推理步骤，若步骤状态为"进行中"则显示 spinner 图标，若步骤状态为"完成"则显示绿色勾选图标。状态与图标之间的映射应始终一致。
-
-**Validates: Requirements 2.6**
-
-### Property 5: Markdown 表格渲染
-
-*For any* 包含有效 Markdown 表格语法的文本，`renderMarkdown` 的输出应包含 `<table>` 元素，且表格行数应与 Markdown 源中的数据行数一致。
-
-**Validates: Requirements 3.4**
-
-### Property 6: Emoji 提示卡片渲染
-
-*For any* 包含 "⚠️" 的文本行，`renderMarkdown` 应将其渲染为带有橙色样式的高亮卡片元素。*For any* 包含 "💡" 的文本行，应渲染为带有蓝色样式的高亮卡片元素。
-
-**Validates: Requirements 3.5, 3.6, 4.4, 4.5**
-
-### Property 7: Markdown 标题装饰渲染
-
-*For any* Markdown 标题文本（`#` 或 `##` 开头），`renderMarkdown` 应输出对应的 heading 元素，且该元素应具有品牌色左边框装饰样式类。
-
-**Validates: Requirements 4.1, 4.2**
-
-### Property 8: 参考文档区域渲染
-
-*For any* 包含 "📚 参考文档" 标记的 Markdown 文本，`renderMarkdown` 应在输出中生成一个参考文档列表区域，包含文档名称和链接。
-
-**Validates: Requirements 4.6**
-
-### Property 9: 代码块渲染
-
-*For any* 包含三反引号代码块的 Markdown 文本，`renderMarkdown` 应输出 `<pre><code>` 元素。
-
-**Validates: Requirements 4.7**
-
-### Property 10: PCS 意图检测
-
-*For any* 包含 PCS 操作关键词的用户消息，`detectPCSIntent` 应返回 `matched: true` 并正确识别操作类型。*For any* 不包含 PCS 关键词的消息，应返回 `matched: false`。
-
-**Validates: Requirements 5.1, 5.2**
-
-### Property 11: 确认卡片值对比展示
-
-*For any* PCS 操作的 Confirmation_Card，渲染输出应同时包含当前值和目标值的文本内容。
-
-**Validates: Requirements 5.7**
-
-### Property 12: 角色选择单选约束
-
-*For any* 角色 Tab 点击操作，操作后应有且仅有一个 Tab 处于选中状态。
-
-**Validates: Requirements 6.3**
-
-### Property 13: 角色切换更新建议问题
-
-*For any* 角色选择操作，建议问题列表应更新为该角色配置中对应的问题列表，且列表内容应与角色配置数据完全匹配。
-
-**Validates: Requirements 6.4, 6.5, 6.6**
-
-### Property 14: 非默认角色显示标签
-
-*For any* 非默认角色（非"通用智能助手"）被选中时，Header 区域应显示该角色名称标签。当默认角色被选中时，不应显示角色标签。
-
-**Validates: Requirements 6.8**
-
-### Property 15: 上下文推荐数量约束
-
-*For any* Context_Recommender 显示实例，推荐问题数量应在 1 至 3 条之间（含边界）。
-
-**Validates: Requirements 7.2**
-
-### Property 16: 弹幕显示条件
-
-*For any* 会话状态，Danmaku_Banner 仅在当前会话无历史消息时显示。若会话包含任何消息，弹幕不应显示。
-
-**Validates: Requirements 8.1**
-
-### Property 17: 弹幕类别颜色映射
-
-*For any* 弹幕项，其颜色标签应与所属类别一致：基础能力为蓝色 (#3b82f6)，操作能力为绿色 (#22c55e)，服务能力为橙色 (#f59e0b)。
-
-**Validates: Requirements 8.2**
-
-### Property 18: 图片描述文字渲染
+### Property 2: 图片描述文字渲染
 
 *For any* Markdown 图片语法 `![alt](url)`，`renderMarkdown` 的输出应在图片下方包含一个描述文字元素，其文本内容等于 `alt`。
 
 **Validates: Requirements 1.8**
 
-### Property 19: 有序列表序号图标渲染
+### Property 3: 图片缩放范围约束
+
+*For any* 缩放操作序列（pinch-zoom 手势产生的 scale 值），最终应用到图片的缩放比例应始终被约束在 [1, 3] 范围内。
+
+**Validates: Requirements 1.4**
+
+### Property 4: CoT 面板折叠切换
+
+*For any* CoT 面板实例，点击标题区域应切换面板的展开/折叠状态——若当前折叠则展开，若当前展开则折叠。
+
+**Validates: Requirements 2.2**
+
+### Property 5: CoT 步骤状态图标映射
+
+*For any* CoT 推理步骤，若步骤状态为"进行中"则显示 spinner 图标，若步骤状态为"完成"则显示绿色勾选图标。状态与图标之间的映射应始终一致。
+
+**Validates: Requirements 2.6**
+
+### Property 6: Markdown 表格渲染
+
+*For any* 包含有效 Markdown 表格语法的文本，`renderMarkdown` 的输出应包含 `<table>` 元素，且表格行数应与 Markdown 源中的数据行数一致。
+
+**Validates: Requirements 3.4**
+
+### Property 7: Emoji 提示卡片渲染
+
+*For any* 包含 "⚠️" 的文本行，`renderMarkdown` 应将其渲染为带有橙色样式的高亮卡片元素。*For any* 包含 "💡" 的文本行，应渲染为带有蓝色样式的高亮卡片元素。*For any* 包含 "⚙️" 的文本行，应渲染为设置/配置类视觉样式元素。
+
+**Validates: Requirements 3.5, 3.6, 4.3, 4.4, 4.5**
+
+### Property 8: Markdown 标题装饰渲染
+
+*For any* Markdown 标题文本（`#` 或 `##` 开头），`renderMarkdown` 应输出对应的 heading 元素，且该元素应具有品牌色左边框装饰样式类。
+
+**Validates: Requirements 4.1, 4.2**
+
+### Property 9: 参考文档区域渲染
+
+*For any* 包含 "📚 参考文档" 标记的 Markdown 文本，`renderMarkdown` 应在输出中生成一个参考文档列表区域，包含文档名称和链接。
+
+**Validates: Requirements 4.6**
+
+### Property 10: 代码块渲染
+
+*For any* 包含三反引号代码块的 Markdown 文本，`renderMarkdown` 应输出 `<pre><code>` 元素。
+
+**Validates: Requirements 4.7**
+
+### Property 11: 有序列表序号图标渲染
 
 *For any* 包含有序列表的 Markdown 文本，`renderMarkdown` 应将每个列表项的序号渲染为圆形背景 + 数字的图标样式，而非默认的数字序号。
 
 **Validates: Requirements 4.8**
 
-### Property 20: 来源标注渲染
+### Property 12: 来源标注渲染
 
 *For any* 包含 "📖 来源：" 标记的 Bot_Message 回复，渲染输出应包含一个来源标注区域，显示文档名称。
 
 **Validates: Requirements 3.9**
 
-### Property 21: 回复详略策略
+### Property 13: 回复详略策略
 
 *For any* 标记为 `complexity: 'complex'` 的 MockReply，其 content 应包含结构化元素（表格、分步说明或注意事项）。*For any* 标记为 `complexity: 'simple'` 的 MockReply，其 content 长度应显著短于 complex 类型。
 
 **Validates: Requirements 3.7, 3.8**
+
+### Property 14: PCS 意图检测与参数提取
+
+*For any* 包含 PCS 操作关键词的用户消息，`detectPCSIntent` 应返回 `matched: true` 并正确识别操作类型。*For any* 不包含 PCS 关键词的消息，应返回 `matched: false`。
+
+**Validates: Requirements 5.1, 5.2**
+
+### Property 15: 确认卡片值对比展示
+
+*For any* PCS 操作的 Confirmation_Card，渲染输出应同时包含当前值和目标值的文本内容。
+
+**Validates: Requirements 5.7**
+
+### Property 16: 角色选择单选约束
+
+*For any* 角色 Tab 点击操作，操作后应有且仅有一个 Tab 处于选中状态。
+
+**Validates: Requirements 6.3**
+
+### Property 17: 角色切换更新建议问题
+
+*For any* 角色选择操作，建议问题列表应更新为该角色配置中对应的问题列表，且列表内容应与角色配置数据完全匹配。
+
+**Validates: Requirements 6.4, 6.5, 6.6**
+
+### Property 18: 非默认角色显示标签
+
+*For any* 非默认角色（非"通用智能助手"）被选中时，Header 区域应显示该角色名称标签。当默认角色被选中时，不应显示角色标签。
+
+**Validates: Requirements 6.8**
+
+### Property 19: 上下文推荐数量约束
+
+*For any* Context_Recommender 显示实例，推荐问题数量应在 1 至 3 条之间（含边界）。
+
+**Validates: Requirements 7.2**
+
+### Property 20: 弹幕显示条件
+
+*For any* 会话状态，Danmaku_Banner 仅在当前会话无历史消息时显示。若会话包含任何消息，弹幕不应显示。
+
+**Validates: Requirements 8.1**
+
+### Property 21: 弹幕类别颜色映射
+
+*For any* 弹幕项，其颜色标签应与所属类别一致：基础能力为蓝色 (#3b82f6)，操作能力为绿色 (#22c55e)，服务能力为橙色 (#f59e0b)。
+
+**Validates: Requirements 8.2**
 
 
 ## 错误处理
 
 ### Markdown 渲染器
 - **无效 Markdown 语法**：对无法识别的语法，原样输出为纯文本，不抛出异常
-- **图片加载失败**：`<img>` 的 `onerror` 事件触发后，替换为灰色占位区域显示"图片加载失败"
+- **图片加载失败**：`<img>` 的 `onerror` 事件触发后，替换为灰色占位区域显示"图片加载失败"（Req 1.3）
 - **空内容**：`renderMarkdown("")` 返回空字符串，不产生任何 DOM 元素
 
 ### PCS 意图检测
 - **无匹配关键词**：`detectPCSIntent` 返回 `{matched: false, type: null, params: null}`
-- **缺少操作参数**：检测到意图但参数不完整时，返回 `{matched: true, type: '...', params: null}`，触发追问流程
+- **缺少操作参数**：检测到意图但参数不完整时，返回 `{matched: true, type: '...', params: null}`，触发追问流程（Req 5.8）
 - **多重意图冲突**：取第一个匹配的操作类型
 
 ### 会话存储
@@ -528,6 +532,9 @@ const PCS_SCENARIOS = {
 - **Context_Recommender**：组件销毁时清除 `setTimeout` / `setInterval`，防止内存泄漏
 - **Danmaku**：弹幕隐藏后停止 CSS 动画，移除 DOM 元素
 
+### 知识库无匹配
+- **无匹配结果**：`getMockReply` 返回 `type: 'no_match'`，Bot_Message 在回复开头显示"未在官方手册找到相关信息"（Req 3.3）
+
 ## 测试策略
 
 ### 测试框架选择
@@ -536,6 +543,8 @@ const PCS_SCENARIOS = {
 - **单元测试**：使用 [Vitest](https://vitest.dev/) 运行纯函数测试
 - **属性测试**：使用 [fast-check](https://github.com/dubzzz/fast-check) 进行属性基测试
 - 测试文件放置在 `tests/` 目录下
+- 每个属性测试最少运行 100 次迭代
+- 每个测试必须包含注释标签，格式为：`// Feature: franklinwh-smart-assistant, Property {N}: {property_text}`
 
 ### 单元测试覆盖
 
@@ -573,12 +582,13 @@ const PCS_SCENARIOS = {
    - 点击弹幕触发消息发送 (Req 8.4)
    - 点击后弹幕淡出 (Req 8.5)
    - 输入框输入时弹幕淡出 (Req 8.6)
-   - 无匹配结果显示提示文字 (Req 3.3)
 
 7. **结构化输出示例测试**
+   - 无匹配结果显示"未在官方手册找到相关信息"提示文字 (Req 3.3)
    - 复杂问题返回详细结构化回复 (Req 3.7)
    - 简单问题返回简洁回复 (Req 3.8)
    - 回复末尾包含来源标注 (Req 3.9)
+   - 回复末尾包含"⚠️ 注意事项"或"💡 专家建议"区块 (Req 3.2)
 
 8. **Markdown UX 增强示例测试**
    - 有序列表步骤匹配圆形序号图标 (Req 4.8)
@@ -588,30 +598,26 @@ const PCS_SCENARIOS = {
 
 每个属性测试对应设计文档中的一个 Correctness Property，最少运行 100 次迭代。
 
-每个测试必须包含注释标签，格式为：
-`// Feature: franklinwh-smart-assistant, Property {N}: {property_text}`
-
 | Property | 测试描述 | 生成器 |
 |----------|---------|--------|
 | 1 | Markdown 图片语法解析 | 随机 alt 文本 + 随机 URL |
-| 2 | 图片缩放范围约束 | 随机 scale 值序列 |
-| 3 | CoT 面板折叠切换 | 随机点击次数序列 |
-| 4 | CoT 步骤状态图标映射 | 随机步骤状态 (pending/done) |
-| 5 | Markdown 表格渲染 | 随机行列数 + 随机单元格内容 |
-| 6 | Emoji 提示卡片渲染 | 随机文本 + ⚠️/💡 前缀 |
-| 7 | Markdown 标题装饰渲染 | 随机标题文本 + #/## 前缀 |
-| 8 | 参考文档区域渲染 | 随机文档名 + URL 列表 |
-| 9 | 代码块渲染 | 随机代码内容 |
-| 10 | PCS 意图检测 | 随机消息文本 (含/不含关键词) |
-| 11 | 确认卡片值对比展示 | 随机 PCS 操作参数 |
-| 12 | 角色选择单选约束 | 随机角色点击序列 |
-| 13 | 角色切换更新建议问题 | 随机角色 ID |
-| 14 | 非默认角色显示标签 | 随机角色 ID |
-| 15 | 上下文推荐数量约束 | 随机角色 + 上下文 |
-| 16 | 弹幕显示条件 | 随机会话状态 (有/无消息) |
-| 17 | 弹幕类别颜色映射 | 随机弹幕项 |
-| 18 | 图片描述文字渲染 | 随机 alt 文本 + 随机 URL |
-| 19 | 有序列表序号图标渲染 | 随机有序列表内容 |
-| 20 | 来源标注渲染 | 随机文档名称 |
-| 21 | 回复详略策略 | 随机 complexity 类型 + 内容 |
-
+| 2 | 图片描述文字渲染 | 随机 alt 文本 + 随机 URL |
+| 3 | 图片缩放范围约束 | 随机 scale 值序列 |
+| 4 | CoT 面板折叠切换 | 随机点击次数序列 |
+| 5 | CoT 步骤状态图标映射 | 随机步骤状态 (pending/done) |
+| 6 | Markdown 表格渲染 | 随机行列数 + 随机单元格内容 |
+| 7 | Emoji 提示卡片渲染 | 随机文本 + ⚠️/💡/⚙️ 前缀 |
+| 8 | Markdown 标题装饰渲染 | 随机标题文本 + #/## 前缀 |
+| 9 | 参考文档区域渲染 | 随机文档名 + URL 列表 |
+| 10 | 代码块渲染 | 随机代码内容 |
+| 11 | 有序列表序号图标渲染 | 随机有序列表内容 |
+| 12 | 来源标注渲染 | 随机文档名称 |
+| 13 | 回复详略策略 | 随机 complexity 类型 + 内容 |
+| 14 | PCS 意图检测与参数提取 | 随机消息文本 (含/不含关键词) |
+| 15 | 确认卡片值对比展示 | 随机 PCS 操作参数 |
+| 16 | 角色选择单选约束 | 随机角色点击序列 |
+| 17 | 角色切换更新建议问题 | 随机角色 ID |
+| 18 | 非默认角色显示标签 | 随机角色 ID |
+| 19 | 上下文推荐数量约束 | 随机角色 + 上下文 |
+| 20 | 弹幕显示条件 | 随机会话状态 (有/无消息) |
+| 21 | 弹幕类别颜色映射 | 随机弹幕项 |
