@@ -220,15 +220,25 @@ function sendMessage(text) {
   // 3. Hide context recommender (will reappear after bot reply)
   hideSuggestions();
 
-  // 3. Get mock reply
+  // 4. 检测是否是电网设置查询，如果是则弹出设置面板
+  if (typeof isGridSettingsQuery === 'function' && isGridSettingsQuery(content)) {
+    // 延迟一下让用户看到消息发送
+    setTimeout(function () {
+      if (typeof openGridSettingsPanel === 'function') {
+        openGridSettingsPanel();
+      }
+    }, 300);
+  }
+
+  // 5. Get mock reply
   const reply = getMockReply(content, currentRole);
 
-  // 4. Create bot message container
+  // 6. Create bot message container
   const botMsg = document.createElement('div');
   botMsg.className = 'message bot';
   messagesEl.appendChild(botMsg);
 
-  // 5. If reply has cotSteps → show CoT panel first, then render content
+  // 7. If reply has cotSteps → show CoT panel first, then render content
   if (reply.cotSteps && reply.cotSteps.length > 0) {
     createCoTPanel(botMsg, reply.cotSteps, function () {
       // CoT animation complete → render content
@@ -275,7 +285,84 @@ function _renderBotContent(botMsg, reply, userText) {
 
   // Check PCS intent
   const pcsResult = detectPCSIntent(userText);
-  if (pcsResult.matched) {
+
+  // 特殊处理：如果是电网设置相关查询，显示设置面板入口卡片
+  if (typeof isGridSettingsQuery === 'function' && isGridSettingsQuery(userText)) {
+    const settingsCard = document.createElement('div');
+    settingsCard.className = 'grid-settings-entry-card';
+    settingsCard.innerHTML =
+      '<div class="grid-settings-entry-content">' +
+      '<div class="grid-settings-entry-header">⚡ 电网输入和输出设置</div>' +
+      '<div class="grid-settings-entry-arrow">›</div>' +
+      '</div>' +
+      '<div class="grid-settings-entry-actions">' +
+      '<button class="grid-settings-entry-btn cancel">取消</button>' +
+      '<button class="grid-settings-entry-btn confirm">确认执行</button>' +
+      '</div>';
+
+    const contentArea = settingsCard.querySelector('.grid-settings-entry-content');
+    const confirmBtn = settingsCard.querySelector('.grid-settings-entry-btn.confirm');
+    const cancelBtn = settingsCard.querySelector('.grid-settings-entry-btn.cancel');
+
+    // 点击内容区域打开设置面板
+    contentArea.addEventListener('click', function () {
+      if (typeof openGridSettingsPanel === 'function') {
+        openGridSettingsPanel();
+      }
+    });
+
+    // 确认按钮
+    confirmBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      // 替换按钮区域为执行进度
+      const actionsEl = settingsCard.querySelector('.grid-settings-entry-actions');
+      actionsEl.innerHTML =
+        '<div style="width:100%;text-align:center;padding:8px 0;">' +
+        '<div class="cot-spinner" style="margin:0 auto;"></div>' +
+        '<div style="font-size:12px;color:#888;margin-top:6px;">正在执行...</div>' +
+        '</div>';
+
+      // 模拟执行延迟后显示成功
+      setTimeout(function () {
+        actionsEl.innerHTML =
+          '<div style="width:100%;text-align:center;padding:10px 0;color:#34a853;font-size:14px;">' +
+          '✅ 执行成功' +
+          '</div>';
+        persistBotMessage(botMsg.innerHTML, 'grid_settings_entry');
+        _autoScroll = true;
+        scrollToBottom();
+      }, 1500);
+    });
+
+    // 取消按钮
+    cancelBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      // 替换卡片内容为取消消息
+      settingsCard.innerHTML =
+        '<div style="padding:12px 16px;text-align:center;color:#888;font-size:13px;">' +
+        '操作已取消' +
+        '</div>';
+      persistBotMessage(botMsg.innerHTML, 'grid_settings_entry');
+      _autoScroll = true;
+      scrollToBottom();
+    });
+
+    botMsg.appendChild(settingsCard);
+    persistBotMessage(botMsg.innerHTML, 'grid_settings_entry');
+    _autoScroll = true;
+    scrollToBottom();
+
+    // 显示电网设置相关的推荐问题
+    if (typeof showCustomSuggestions === 'function') {
+      const gridQuestions = [
+        '什么情况允许电网输入，什么情况不允许？',
+        '设置了允许电网输入，最大允许充电功率应该是多少？',
+        '允许电网充电后，aPower或者光伏还能给电网馈电吗？',
+        'aPower最大馈网功率是多少？'
+      ];
+      showCustomSuggestions(gridQuestions);
+    }
+  } else if (pcsResult.matched) {
     if (pcsResult.params === null) {
       // Missing params → show follow-up question
       const followUpDiv = document.createElement('div');
@@ -309,8 +396,10 @@ function _renderBotContent(botMsg, reply, userText) {
   // Persist bot message
   persistBotMessage(botMsg.innerHTML, reply.type === 'text' ? 'text' : 'markdown');
 
-  // 回答完后刷新推荐问题
-  showSuggestions(currentRole);
+  // 回答完后刷新推荐问题（电网设置场景已经显示了自定义推荐，不需要再刷新）
+  if (!(typeof isGridSettingsQuery === 'function' && isGridSettingsQuery(userText))) {
+    showSuggestions(currentRole);
+  }
   scrollToBottom();
 }
 

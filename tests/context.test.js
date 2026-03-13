@@ -7,6 +7,7 @@ global.ROLES = mockdata.ROLES;
 const {
   initContextRecommender,
   showSuggestions,
+  showCustomSuggestions,
   hideSuggestions,
   triggerRecommendation,
   destroyContextRecommender,
@@ -32,7 +33,7 @@ describe('initContextRecommender', () => {
   });
 
   it('does not throw if container is null', () => {
-    expect(() => initContextRecommender(null, () => {})).not.toThrow();
+    expect(() => initContextRecommender(null, () => { })).not.toThrow();
   });
 
   it('stores container and onSelect references', () => {
@@ -43,7 +44,7 @@ describe('initContextRecommender', () => {
   });
 
   it('finds list element', () => {
-    initContextRecommender(container, () => {});
+    initContextRecommender(container, () => { });
     expect(_ctxState.listEl).toBeTruthy();
   });
 });
@@ -58,7 +59,7 @@ describe('showSuggestions', () => {
       <div class="context-recommender-list"></div>
     `;
     document.body.appendChild(container);
-    initContextRecommender(container, () => {});
+    initContextRecommender(container, () => { });
   });
 
   afterEach(() => {
@@ -125,7 +126,7 @@ describe('hideSuggestions', () => {
       <div class="context-recommender-list"></div>
     `;
     document.body.appendChild(container);
-    initContextRecommender(container, () => {});
+    initContextRecommender(container, () => { });
   });
 
   afterEach(() => {
@@ -169,7 +170,7 @@ describe('triggerRecommendation (backward compat)', () => {
       <div class="context-recommender-list"></div>
     `;
     document.body.appendChild(container);
-    initContextRecommender(container, () => {});
+    initContextRecommender(container, () => { });
   });
 
   afterEach(() => {
@@ -202,7 +203,7 @@ describe('destroyContextRecommender', () => {
   });
 
   it('resets all internal state', () => {
-    initContextRecommender(container, () => {});
+    initContextRecommender(container, () => { });
     destroyContextRecommender();
 
     expect(_ctxState.container).toBeNull();
@@ -228,5 +229,59 @@ describe('_getSuggestionsForRole', () => {
   it('returns empty array for unknown role', () => {
     const suggestions = _getSuggestionsForRole('unknown');
     expect(suggestions.length).toBe(0);
+  });
+});
+
+
+describe('showCustomSuggestions', () => {
+  let container;
+  let listEl;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    container.className = 'context-recommender';
+    listEl = document.createElement('div');
+    listEl.className = 'context-recommender-list';
+    container.appendChild(listEl);
+    document.body.appendChild(container);
+
+    initContextRecommender(container, vi.fn());
+  });
+
+  afterEach(() => {
+    destroyContextRecommender();
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
+    }
+  });
+
+  it('应该显示自定义推荐问题', () => {
+    const customQuestions = [
+      '什么情况允许电网输入？',
+      '最大允许充电功率应该是多少？',
+      'aPower最大馈网功率是多少？'
+    ];
+
+    showCustomSuggestions(customQuestions);
+
+    expect(container.classList.contains('visible')).toBe(true);
+    const items = listEl.querySelectorAll('.context-recommender-item');
+    expect(items.length).toBe(3);
+    expect(items[0].textContent).toBe('什么情况允许电网输入？');
+    expect(items[1].textContent).toBe('最大允许充电功率应该是多少？');
+    expect(items[2].textContent).toBe('aPower最大馈网功率是多少？');
+  });
+
+  it('应该处理空数组', () => {
+    showCustomSuggestions([]);
+    expect(container.classList.contains('visible')).toBe(false);
+  });
+
+  it('应该处理 null 或 undefined', () => {
+    showCustomSuggestions(null);
+    expect(container.classList.contains('visible')).toBe(false);
+
+    showCustomSuggestions(undefined);
+    expect(container.classList.contains('visible')).toBe(false);
   });
 });

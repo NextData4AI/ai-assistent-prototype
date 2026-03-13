@@ -17,7 +17,7 @@ function initContextRecommender(container, onSelect) {
   if (!container) return;
 
   _ctxState.container = container;
-  _ctxState.onSelect = onSelect || function() {};
+  _ctxState.onSelect = onSelect || function () { };
   _ctxState.listEl = container.querySelector('.context-recommender-list') ||
     container.querySelector('#contextRecommenderList');
 }
@@ -41,13 +41,41 @@ function showSuggestions(roleId) {
     item.className = 'context-recommender-item';
     item.textContent = suggestions[i];
     item.setAttribute('data-question', suggestions[i]);
-    (function(question) {
-      item.addEventListener('click', function() {
+    (function (question) {
+      item.addEventListener('click', function () {
         if (_ctxState.onSelect) {
           _ctxState.onSelect(question);
         }
       });
     })(suggestions[i]);
+    _ctxState.listEl.appendChild(item);
+  }
+
+  _ctxState.container.classList.add('visible');
+}
+
+/**
+ * 显示自定义推荐问题（用于特定场景，如电网设置）
+ * @param {string[]} questions - 推荐问题数组
+ */
+function showCustomSuggestions(questions) {
+  if (!_ctxState.container || !_ctxState.listEl) return;
+  if (!questions || questions.length === 0) return;
+
+  _ctxState.listEl.innerHTML = '';
+
+  for (var i = 0; i < questions.length; i++) {
+    var item = document.createElement('div');
+    item.className = 'context-recommender-item';
+    item.textContent = questions[i];
+    item.setAttribute('data-question', questions[i]);
+    (function (question) {
+      item.addEventListener('click', function () {
+        if (_ctxState.onSelect) {
+          _ctxState.onSelect(question);
+        }
+      });
+    })(questions[i]);
     _ctxState.listEl.appendChild(item);
   }
 
@@ -126,6 +154,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     initContextRecommender: initContextRecommender,
     showSuggestions: showSuggestions,
+    showCustomSuggestions: showCustomSuggestions,
     hideSuggestions: hideSuggestions,
     triggerRecommendation: triggerRecommendation,
     destroyContextRecommender: destroyContextRecommender,

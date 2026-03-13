@@ -277,6 +277,137 @@ FranklinWH 提供行业领先的保修服务：
     }
   },
   {
+    keywords: ['电网输入输出', '电网输入和输出', '设置电网', '电网设置'],
+    roleIds: ['general', 'device'],
+    reply: {
+      type: 'text',
+      complexity: 'simple',
+      content: '已为您打开电网输入输出设置面板，您可以在面板中配置电网充电和馈网参数。',
+      source: 'FranklinWH 设备管理手册',
+      cotSteps: [
+        { label: '查询数据', detail: '正在查询 FranklinWH 设备数据…' },
+        { label: '分析数据', detail: '正在分析数据…' },
+        { label: '归纳结果', detail: '正在归纳结果...' }
+      ]
+    }
+  },
+  {
+    keywords: ['什么情况允许电网输入', '什么情况不允许', '允许电网输入条件'],
+    roleIds: ['general', 'device'],
+    reply: {
+      type: 'markdown',
+      complexity: 'simple',
+      content: `## 电网输入条件
+
+**允许电网输入的情况：**
+- 电池电量低于设定阈值（通常 20%）
+- 用户手动开启电网充电模式
+- 峰谷电价低谷时段（如已配置）
+- 应急备电需求
+
+**不允许电网输入的情况：**
+- 电池已充满（达到 100%）
+- 用户关闭电网充电功能
+- 电网频率或电压异常
+- 系统检测到电网故障
+
+💡 建议在低谷电价时段开启电网充电，可有效降低用电成本。`,
+      source: 'FranklinWH 用户手册 v3.2',
+      cotSteps: [
+        { label: '查询数据', detail: '正在查询 FranklinWH 设备数据…' },
+        { label: '分析数据', detail: '正在分析数据…' },
+        { label: '归纳结果', detail: '正在归纳结果...' }
+      ]
+    }
+  },
+  {
+    keywords: ['最大允许充电功率', '充电功率应该是多少', '充电功率设置'],
+    roleIds: ['general', 'device', 'energy'],
+    reply: {
+      type: 'markdown',
+      complexity: 'simple',
+      content: `## 最大允许充电功率设置
+
+**推荐设置：**
+- 单个 aPower 模组：建议设置为 5 kW
+- 多个模组并联：可按模组数量 × 5 kW 设置
+- 家庭用电负载较大：建议预留 2-3 kW 给家用电器
+
+**注意事项：**
+- 充电功率过大可能导致电网过载
+- 建议不超过家庭总用电容量的 80%
+- 可设置为"不限制"，系统将自动优化
+
+💡 如果不确定，建议设置为"不限制"，让系统智能管理。`,
+      source: 'FranklinWH 安装手册 v3.2',
+      cotSteps: [
+        { label: '查询数据', detail: '正在查询 FranklinWH 设备数据…' },
+        { label: '分析数据', detail: '正在分析数据…' },
+        { label: '归纳结果', detail: '正在归纳结果...' }
+      ]
+    }
+  },
+  {
+    keywords: ['允许电网充电后', '还能给电网馈电吗', '充电和馈电', '同时充电馈电'],
+    roleIds: ['general', 'device', 'energy'],
+    reply: {
+      type: 'markdown',
+      complexity: 'simple',
+      content: `## 电网充电与馈电关系
+
+**可以同时进行：**
+- 电网充电和光伏馈网可以同时进行
+- 白天光伏发电多余时可馈网
+- 夜间低谷电价时可从电网充电
+
+**系统智能管理：**
+- 优先使用光伏发电
+- 多余电量优先存储到 aPower
+- aPower 充满后再馈网
+- 电网充电不会立即馈网（避免能量损耗）
+
+⚠️ 部分地区法规要求电网充电不能与电池馈网共存，请咨询当地电力公司。`,
+      source: 'FranklinWH 能源管理指南 v1.5',
+      cotSteps: [
+        { label: '查询数据', detail: '正在查询 FranklinWH 设备数据…' },
+        { label: '分析数据', detail: '正在分析数据…' },
+        { label: '归纳结果', detail: '正在归纳结果...' }
+      ]
+    }
+  },
+  {
+    keywords: ['apower最大馈网功率', '馈网功率是多少', '最大馈网', '馈网限制'],
+    roleIds: ['general', 'device', 'energy'],
+    reply: {
+      type: 'markdown',
+      complexity: 'simple',
+      content: `## aPower 最大馈网功率
+
+**单模组规格：**
+- 额定功率：5 kW
+- 峰值功率：6 kW（短时）
+- 持续馈网：建议不超过 5 kW
+
+**多模组并联：**
+- 2 台并联：10 kW
+- 3 台并联：15 kW
+- 最多 15 台：75 kW
+
+**建议设置：**
+- 根据当地电网接入标准设置
+- 一般家庭：5-10 kW
+- 如无特殊要求，可设置为"不限制"
+
+💡 馈网功率过大可能触发电网保护，建议咨询安装商或电力公司。`,
+      source: 'FranklinWH 产品规格书 v2.0',
+      cotSteps: [
+        { label: '查询数据', detail: '正在查询 FranklinWH 设备数据…' },
+        { label: '分析数据', detail: '正在分析数据…' },
+        { label: '归纳结果', detail: '正在归纳结果...' }
+      ]
+    }
+  },
+  {
     keywords: ['wifi', 'wi-fi', '网络', '连接'],
     roleIds: ['general', 'device'],
     reply: {

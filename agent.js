@@ -63,37 +63,53 @@ function createConfirmationCard(operationType, params, onConfirm, onCancel) {
   var currentDisplay = String(params.currentValue) + (params.unit ? ' ' + params.unit : '');
   var targetDisplay = String(params.targetValue) + (params.unit ? ' ' + params.unit : '');
 
+  var isGridRelated = (operationType === 'grid_charge' || operationType === 'energy_output' || operationType === 'import_limit' || operationType === 'export_limit');
+
   card.innerHTML =
-    '<div class="confirmation-card-header">⚡ ' + params.name + '</div>' +
+    '<div class="confirmation-card-header' + (isGridRelated ? ' clickable' : '') + '"' +
+    (isGridRelated ? ' data-open-grid-settings="true"' : '') +
+    '>⚡ ' + params.name +
+    (isGridRelated ? '<span class="confirmation-card-header-arrow">›</span>' : '') +
+    '</div>' +
     '<div class="confirmation-card-body">' +
-      '<div class="confirmation-card-compare">' +
-        '<span class="confirmation-card-value current">' + currentDisplay + '</span>' +
-        '<span class="confirmation-card-arrow">→</span>' +
-        '<span class="confirmation-card-value target">' + targetDisplay + '</span>' +
-      '</div>' +
+    '<div class="confirmation-card-compare">' +
+    '<span class="confirmation-card-value current">' + currentDisplay + '</span>' +
+    '<span class="confirmation-card-arrow">→</span>' +
+    '<span class="confirmation-card-value target">' + targetDisplay + '</span>' +
+    '</div>' +
     '</div>' +
     '<div class="confirmation-card-actions">' +
-      '<button class="confirmation-card-btn cancel">取消</button>' +
-      '<button class="confirmation-card-btn confirm">确认执行</button>' +
+    '<button class="confirmation-card-btn cancel">取消</button>' +
+    '<button class="confirmation-card-btn confirm">确认执行</button>' +
     '</div>';
 
   var confirmBtn = card.querySelector('.confirmation-card-btn.confirm');
   var cancelBtn = card.querySelector('.confirmation-card-btn.cancel');
+  var headerEl = card.querySelector('.confirmation-card-header');
+
+  // 如果是电网相关操作，header 可点击打开设置面板
+  if (headerEl && headerEl.dataset.openGridSettings === 'true') {
+    headerEl.addEventListener('click', function () {
+      if (typeof openGridSettingsPanel === 'function') {
+        openGridSettingsPanel();
+      }
+    });
+  }
 
   confirmBtn.addEventListener('click', function () {
     // 替换按钮区域为执行进度
     var actionsEl = card.querySelector('.confirmation-card-actions');
     actionsEl.innerHTML =
       '<div style="width:100%;text-align:center;padding:8px 0;">' +
-        '<div class="cot-spinner" style="margin:0 auto;"></div>' +
-        '<div style="font-size:12px;color:#888;margin-top:6px;">正在执行...</div>' +
+      '<div class="cot-spinner" style="margin:0 auto;"></div>' +
+      '<div style="font-size:12px;color:#888;margin-top:6px;">正在执行...</div>' +
       '</div>';
 
     // 模拟执行延迟后显示成功
     setTimeout(function () {
       actionsEl.innerHTML =
         '<div style="width:100%;text-align:center;padding:10px 0;color:#34a853;font-size:14px;">' +
-          '✅ 执行成功' +
+        '✅ 执行成功' +
         '</div>';
       if (typeof onConfirm === 'function') onConfirm();
     }, 1500);
@@ -103,7 +119,7 @@ function createConfirmationCard(operationType, params, onConfirm, onCancel) {
     // 替换卡片内容为取消消息
     card.innerHTML =
       '<div style="padding:12px 16px;text-align:center;color:#888;font-size:13px;">' +
-        '操作已取消' +
+      '操作已取消' +
       '</div>';
     if (typeof onCancel === 'function') onCancel();
   });
