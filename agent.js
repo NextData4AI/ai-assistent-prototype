@@ -58,19 +58,105 @@ function detectPCSIntent(message) {
  */
 function createConfirmationCard(operationType, params, onConfirm, onCancel) {
   var card = document.createElement('div');
+  var isGridRelated = (operationType === 'grid_charge' || operationType === 'energy_output' || operationType === 'import_limit' || operationType === 'export_limit');
+
+  // 电网相关操作：使用缩略预览图样式
+  if (isGridRelated) {
+    card.className = 'grid-settings-entry-card';
+    card.innerHTML =
+      '<div class="grid-settings-entry-content" role="button" tabindex="0">' +
+      '<div class="grid-preview">' +
+      '<div class="grid-preview-header">' +
+      '<span class="grid-preview-back">‹</span>' +
+      '<span class="grid-preview-title">电网输入和输出</span>' +
+      '<span class="grid-preview-help">?</span>' +
+      '</div>' +
+      '<div class="grid-preview-body">' +
+      '<div class="grid-preview-section">' +
+      '<div class="grid-preview-label">电网输入</div>' +
+      '<div class="grid-preview-field">' +
+      '<span>允许电网充电</span>' +
+      '<span class="grid-preview-dropdown-icon">›</span>' +
+      '</div>' +
+      '<div class="grid-preview-desc">aPower将会在允许时间段用电网充电，如果需要更改，请转到自定义调度。</div>' +
+      '<div class="grid-preview-sub-label">电网取电限制</div>' +
+      '<div class="grid-preview-field">' +
+      '<span>不限制</span>' +
+      '<span class="grid-preview-unit">kW</span>' +
+      '</div>' +
+      '<div class="grid-preview-hint">范围0.1~100000.0 kW，精确至0.1 kW</div>' +
+      '</div>' +
+      '<div class="grid-preview-section">' +
+      '<div class="grid-preview-label">能量输出</div>' +
+      '<div class="grid-preview-field">' +
+      '<span>仅光伏（无储能输出）</span>' +
+      '<span class="grid-preview-dropdown-icon">›</span>' +
+      '</div>' +
+      '<div class="grid-preview-desc">aPower无法给电网馈电</div>' +
+      '<div class="grid-preview-sub-label">电网馈网限制</div>' +
+      '<div class="grid-preview-field">' +
+      '<span>不限制</span>' +
+      '<span class="grid-preview-unit">kW</span>' +
+      '</div>' +
+      '<div class="grid-preview-hint">范围0.1~100000.0 kW，精确至0.1 kW</div>' +
+      '</div>' +
+      '<div class="grid-preview-warning">不允许aPower馈网可能会影响您的经济收益</div>' +
+      '<div class="grid-preview-confirm-btn">确认</div>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="grid-settings-entry-actions">' +
+      '<button class="grid-settings-entry-btn cancel">取消</button>' +
+      '<button class="grid-settings-entry-btn confirm">确认执行</button>' +
+      '</div>';
+
+    var contentArea = card.querySelector('.grid-settings-entry-content');
+    var gridConfirmBtn = card.querySelector('.grid-settings-entry-btn.confirm');
+    var gridCancelBtn = card.querySelector('.grid-settings-entry-btn.cancel');
+
+    contentArea.addEventListener('click', function () {
+      if (typeof openGridSettingsPanel === 'function') {
+        openGridSettingsPanel();
+      }
+    });
+
+    gridConfirmBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var actionsEl = card.querySelector('.grid-settings-entry-actions');
+      actionsEl.innerHTML =
+        '<div style="width:100%;text-align:center;padding:8px 0;">' +
+        '<div class="cot-spinner" style="margin:0 auto;"></div>' +
+        '<div style="font-size:12px;color:#888;margin-top:6px;">正在执行...</div>' +
+        '</div>';
+      setTimeout(function () {
+        actionsEl.innerHTML =
+          '<div style="width:100%;text-align:center;padding:10px 0;color:#34a853;font-size:14px;">' +
+          '✅ 执行成功' +
+          '</div>';
+        if (typeof onConfirm === 'function') onConfirm();
+      }, 1500);
+    });
+
+    gridCancelBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      card.innerHTML =
+        '<div style="padding:12px 16px;text-align:center;color:#888;font-size:13px;">' +
+        '操作已取消' +
+        '</div>';
+      if (typeof onCancel === 'function') onCancel();
+    });
+
+    return card;
+  }
+
+  // 非电网操作：使用原有确认卡片样式
   card.className = 'confirmation-card';
 
   var currentDisplay = String(params.currentValue) + (params.unit ? ' ' + params.unit : '');
   var targetDisplay = String(params.targetValue) + (params.unit ? ' ' + params.unit : '');
 
-  var isGridRelated = (operationType === 'grid_charge' || operationType === 'energy_output' || operationType === 'import_limit' || operationType === 'export_limit');
-
   card.innerHTML =
-    '<div class="confirmation-card-header' + (isGridRelated ? ' clickable' : '') + '"' +
-    (isGridRelated ? ' data-open-grid-settings="true"' : '') +
-    '>⚡ ' + params.name +
-    (isGridRelated ? '<span class="confirmation-card-header-arrow">›</span>' : '') +
-    '</div>' +
+    '<div class="confirmation-card-header">⚡ ' + params.name + '</div>' +
     '<div class="confirmation-card-body">' +
     '<div class="confirmation-card-compare">' +
     '<span class="confirmation-card-value current">' + currentDisplay + '</span>' +
@@ -85,27 +171,14 @@ function createConfirmationCard(operationType, params, onConfirm, onCancel) {
 
   var confirmBtn = card.querySelector('.confirmation-card-btn.confirm');
   var cancelBtn = card.querySelector('.confirmation-card-btn.cancel');
-  var headerEl = card.querySelector('.confirmation-card-header');
-
-  // 如果是电网相关操作，header 可点击打开设置面板
-  if (headerEl && headerEl.dataset.openGridSettings === 'true') {
-    headerEl.addEventListener('click', function () {
-      if (typeof openGridSettingsPanel === 'function') {
-        openGridSettingsPanel();
-      }
-    });
-  }
 
   confirmBtn.addEventListener('click', function () {
-    // 替换按钮区域为执行进度
     var actionsEl = card.querySelector('.confirmation-card-actions');
     actionsEl.innerHTML =
       '<div style="width:100%;text-align:center;padding:8px 0;">' +
       '<div class="cot-spinner" style="margin:0 auto;"></div>' +
       '<div style="font-size:12px;color:#888;margin-top:6px;">正在执行...</div>' +
       '</div>';
-
-    // 模拟执行延迟后显示成功
     setTimeout(function () {
       actionsEl.innerHTML =
         '<div style="width:100%;text-align:center;padding:10px 0;color:#34a853;font-size:14px;">' +
@@ -116,7 +189,6 @@ function createConfirmationCard(operationType, params, onConfirm, onCancel) {
   });
 
   cancelBtn.addEventListener('click', function () {
-    // 替换卡片内容为取消消息
     card.innerHTML =
       '<div style="padding:12px 16px;text-align:center;color:#888;font-size:13px;">' +
       '操作已取消' +

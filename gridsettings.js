@@ -26,10 +26,17 @@ function initGridSettingsPanel() {
     // 返回按钮
     backBtn.addEventListener('click', closePanel);
 
-    // 确认按钮
+    // 保存按钮
     confirmBtn.addEventListener('click', function () {
-        // 这里可以添加保存逻辑
-        closePanel();
+        // 面板进入已保存/只读状态
+        panel.classList.add('saved');
+        confirmBtn.textContent = '已保存';
+        confirmBtn.disabled = true;
+
+        // 短暂显示已保存状态后关闭面板
+        setTimeout(function () {
+            closePanel();
+        }, 600);
     });
 }
 
@@ -38,7 +45,15 @@ function initGridSettingsPanel() {
  */
 function openGridSettingsPanel() {
     const overlay = document.getElementById('gridSettingsOverlay');
+    const panel = document.getElementById('gridSettingsPanel');
+    const confirmBtn = document.getElementById('gridSettingsConfirm');
     if (overlay) {
+        // 重置保存状态
+        if (panel) panel.classList.remove('saved');
+        if (confirmBtn) {
+            confirmBtn.textContent = '保存';
+            confirmBtn.disabled = false;
+        }
         overlay.classList.add('active');
     }
 }

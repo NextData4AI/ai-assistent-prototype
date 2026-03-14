@@ -64,48 +64,68 @@ describe('detectPCSIntent', () => {
 });
 
 describe('createConfirmationCard', () => {
-  it('renders card with current and target values', () => {
-    var card = createConfirmationCard('import_limit', {
-      name: '取电限制调整',
-      currentValue: 30,
-      targetValue: 50,
-      unit: 'A'
-    }, function () {}, function () {});
-
-    expect(card).toBeInstanceOf(HTMLElement);
-    expect(card.textContent).toContain('30 A');
-    expect(card.textContent).toContain('50 A');
-    expect(card.textContent).toContain('取电限制调整');
-  });
-
-  it('has confirm and cancel buttons', () => {
+  // 电网相关操作：使用缩略预览图样式
+  it('renders grid preview card for grid-related types', () => {
     var card = createConfirmationCard('grid_charge', {
       name: '电网输入切换',
       currentValue: 'Solar Only',
       targetValue: 'Grid + Solar',
       unit: ''
-    }, function () {}, function () {});
+    }, function () { }, function () { });
 
-    var confirmBtn = card.querySelector('.confirmation-card-btn.confirm');
-    var cancelBtn = card.querySelector('.confirmation-card-btn.cancel');
+    expect(card).toBeInstanceOf(HTMLElement);
+    expect(card.className).toBe('grid-settings-entry-card');
+    expect(card.textContent).toContain('电网输入和输出');
+    expect(card.querySelector('.grid-preview')).not.toBeNull();
+  });
+
+  it('grid card has confirm and cancel buttons', () => {
+    var card = createConfirmationCard('import_limit', {
+      name: '取电限制调整',
+      currentValue: 30,
+      targetValue: 50,
+      unit: 'A'
+    }, function () { }, function () { });
+
+    var confirmBtn = card.querySelector('.grid-settings-entry-btn.confirm');
+    var cancelBtn = card.querySelector('.grid-settings-entry-btn.cancel');
     expect(confirmBtn).not.toBeNull();
     expect(cancelBtn).not.toBeNull();
     expect(confirmBtn.textContent).toBe('确认执行');
     expect(cancelBtn.textContent).toBe('取消');
   });
 
-  it('shows cancelled message on cancel click', () => {
+  it('grid card shows cancelled message on cancel click', () => {
     var cancelled = false;
     var card = createConfirmationCard('grid_charge', {
       name: '电网输入切换',
       currentValue: 'Solar Only',
       targetValue: 'Grid + Solar',
       unit: ''
-    }, function () {}, function () { cancelled = true; });
+    }, function () { }, function () { cancelled = true; });
 
-    card.querySelector('.confirmation-card-btn.cancel').click();
+    card.querySelector('.grid-settings-entry-btn.cancel').click();
     expect(card.textContent).toContain('操作已取消');
     expect(cancelled).toBe(true);
+  });
+
+  // 非电网操作：使用原有确认卡片样式
+  it('renders classic confirmation card for non-grid types', () => {
+    // 使用一个非电网类型来测试原有样式
+    global.PCS_SCENARIOS['test_non_grid'] = { keywords: ['test'], name: 'Test', currentValue: 10, targetValue: 20, unit: 'W' };
+    var card = createConfirmationCard('test_non_grid', {
+      name: 'Test操作',
+      currentValue: 10,
+      targetValue: 20,
+      unit: 'W'
+    }, function () { }, function () { });
+
+    expect(card.className).toBe('confirmation-card');
+    expect(card.textContent).toContain('10 W');
+    expect(card.textContent).toContain('20 W');
+    expect(card.querySelector('.confirmation-card-btn.confirm')).not.toBeNull();
+    expect(card.querySelector('.confirmation-card-btn.cancel')).not.toBeNull();
+    delete global.PCS_SCENARIOS['test_non_grid'];
   });
 });
 

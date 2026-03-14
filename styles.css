@@ -1727,20 +1727,26 @@ body {
 
 /* ===== Grid Settings Panel (电网输入输出设置面板) ===== */
 .grid-settings-overlay {
-  display: none;
-  position: fixed;
+  display: flex;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0);
   z-index: 150;
   justify-content: center;
   align-items: flex-end;
+  visibility: hidden;
+  pointer-events: none;
+  transition: background 0.4s ease, visibility 0s linear 0.4s;
 }
 
 .grid-settings-overlay.active {
-  display: flex;
+  visibility: visible;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.5);
+  transition: background 0.4s ease, visibility 0s linear 0s;
 }
 
 .grid-settings-panel {
@@ -1748,7 +1754,7 @@ body {
   max-width: 390px;
   background: #f5f5f5;
   border-radius: 20px 20px 0 0;
-  max-height: 85vh;
+  height: 80%;
   display: flex;
   flex-direction: column;
   transform: translateY(100%);
@@ -2287,4 +2293,149 @@ body {
 .grid-settings-entry-btn.cancel:active {
   background: #ddd;
   transform: scale(0.98);
+}
+
+/* ===== Grid Settings Panel 已保存状态 ===== */
+.grid-settings-panel.saved .grid-settings-content {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.grid-settings-panel.saved .grid-settings-confirm {
+  background: #ccc !important;
+  cursor: not-allowed !important;
+  color: #fff !important;
+}
+
+/* ===== Grid Preview Thumbnail (缩略预览卡片) ===== */
+.grid-preview {
+  background: #f5f5f5;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 8px;
+  line-height: 1.4;
+  color: #333;
+  width: 100%;
+  pointer-events: none;
+}
+
+.grid-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.grid-preview-back {
+  font-size: 14px;
+  color: #333;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.grid-preview-title {
+  flex: 1;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.grid-preview-help {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #aaa;
+  font-size: 8px;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-preview-body {
+  padding: 6px 8px;
+}
+
+.grid-preview-section {
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 5px;
+}
+
+.grid-preview-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.grid-preview-sub-label {
+  font-size: 7px;
+  color: #666;
+  margin-top: 4px;
+  margin-bottom: 3px;
+}
+
+.grid-preview-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8f8f8;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 7px;
+  color: #1a1a1a;
+}
+
+.grid-preview-dropdown-icon {
+  font-size: 9px;
+  color: #c7c7cc;
+  transform: rotate(90deg);
+}
+
+.grid-preview-unit {
+  font-size: 7px;
+  color: #888;
+}
+
+.grid-preview-desc {
+  font-size: 6px;
+  color: #999;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.grid-preview-hint {
+  font-size: 6px;
+  color: #bbb;
+  margin-top: 2px;
+}
+
+.grid-preview-warning {
+  background: #fff8e1;
+  border-left: 2px solid #f59e0b;
+  padding: 4px 6px;
+  margin: 4px 0;
+  font-size: 6px;
+  color: #7c5e00;
+  border-radius: 3px;
+}
+
+.grid-preview-confirm-btn {
+  display: block;
+  width: 100%;
+  padding: 5px 0;
+  background: #ff9500;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 8px;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 4px;
 }

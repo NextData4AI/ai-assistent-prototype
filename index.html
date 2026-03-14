@@ -121,96 +121,97 @@
       </div>
 
       <div class="bottom-bar"></div>
+
+      <!-- Grid Settings Panel (电网输入输出设置面板) -->
+      <div class="grid-settings-overlay" id="gridSettingsOverlay">
+        <div class="grid-settings-panel" id="gridSettingsPanel">
+          <div class="grid-settings-header">
+            <button class="grid-settings-back" id="gridSettingsBack" aria-label="返回">‹</button>
+            <span class="grid-settings-title">电网输入和输出</span>
+            <button class="grid-settings-help" aria-label="帮助">?</button>
+          </div>
+
+          <div class="grid-settings-content">
+            <!-- 电网输入 -->
+            <div class="grid-settings-section-header">
+              <div class="grid-settings-section-icon">👴</div>
+              <span class="grid-settings-section-title">电网输入</span>
+            </div>
+
+            <div class="grid-settings-section">
+              <div class="grid-settings-item">
+                <div class="grid-settings-select">
+                  <select class="grid-settings-dropdown" id="gridChargeSelect">
+                    <option value="allow">允许电网充电</option>
+                    <option value="disallow">不允许电网充电</option>
+                  </select>
+                  <span class="grid-settings-dropdown-arrow">›</span>
+                </div>
+                <div class="grid-settings-item-desc">
+                  aPower将会在允许时间段用电网充电。如果需要更改，请转到自定义调度。
+                </div>
+              </div>
+
+              <div class="grid-settings-item">
+                <div class="grid-settings-item-label">电网取电限制</div>
+                <div class="grid-settings-input-group">
+                  <input type="text" class="grid-settings-input" placeholder="不限制" value="" id="maxChargeInput">
+                  <span class="grid-settings-unit">kW</span>
+                </div>
+                <div class="grid-settings-item-hint">范围0.1-100000.0 kW，精确至0.1 kW</div>
+              </div>
+            </div>
+
+            <!-- 能量输出 -->
+            <div class="grid-settings-section-header">
+              <span class="grid-settings-section-title">能量输出</span>
+            </div>
+
+            <div class="grid-settings-section">
+              <div class="grid-settings-item">
+                <div class="grid-settings-item-label">光伏 & aPower</div>
+                <div class="grid-settings-select">
+                  <select class="grid-settings-dropdown" id="energyOutputSelect">
+                    <option value="pv_apower">光伏 & aPower</option>
+                    <option value="pv_only">仅光伏</option>
+                  </select>
+                  <span class="grid-settings-dropdown-arrow">›</span>
+                </div>
+                <div class="grid-settings-item-desc">
+                  aPower将会在允许时间段给电网馈网。如果需要更改，请到自定义速度。
+                </div>
+              </div>
+
+              <div class="grid-settings-item">
+                <div class="grid-settings-item-label">aPower最大允许馈网功率</div>
+                <div class="grid-settings-input-group">
+                  <input type="text" class="grid-settings-input" placeholder="不限制" value="" id="maxExportInput">
+                  <span class="grid-settings-unit">kW</span>
+                </div>
+                <div class="grid-settings-item-hint">范围0.1-100000.0 kW，精确至0.1 kW</div>
+              </div>
+            </div>
+
+            <!-- 警告提示 -->
+            <div class="grid-settings-warning">
+              <span class="grid-settings-warning-icon">⚠️</span>
+              <span>一些电力公司事业法规要求电网充电不能与电池储网共存</span>
+            </div>
+          </div>
+
+          <!-- 确认按钮 -->
+          <div class="grid-settings-footer">
+            <button class="grid-settings-confirm" id="gridSettingsConfirm">保存</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <!-- ImageViewer 全屏模态 -->
   <div class="image-viewer-overlay" id="imageViewerOverlay">
     <img class="image-viewer-img" id="imageViewerImg" src="" alt="全屏图片">
-  </div>
-
-  <!-- Grid Settings Panel (电网输入输出设置面板) -->
-  <div class="grid-settings-overlay" id="gridSettingsOverlay">
-    <div class="grid-settings-panel" id="gridSettingsPanel">
-      <div class="grid-settings-header">
-        <button class="grid-settings-back" id="gridSettingsBack" aria-label="返回">‹</button>
-        <span class="grid-settings-title">电网输入和输出</span>
-        <button class="grid-settings-help" aria-label="帮助">?</button>
-      </div>
-
-      <div class="grid-settings-content">
-        <!-- 电网输入 -->
-        <div class="grid-settings-section-header">
-          <div class="grid-settings-section-icon">👴</div>
-          <span class="grid-settings-section-title">电网输入</span>
-        </div>
-
-        <div class="grid-settings-section">
-          <div class="grid-settings-item">
-            <div class="grid-settings-item-row">
-              <span class="grid-settings-item-label">允许电网充电</span>
-              <label class="grid-settings-toggle">
-                <input type="checkbox" id="gridChargeToggle" checked>
-                <span class="grid-settings-toggle-slider"></span>
-              </label>
-            </div>
-            <div class="grid-settings-item-desc">
-              aPower将会在允许时间段用电网充电。如果需要更改，请到自定义速度。
-            </div>
-          </div>
-
-          <div class="grid-settings-item">
-            <div class="grid-settings-item-label">最大允许充电功率</div>
-            <div class="grid-settings-input-group">
-              <input type="text" class="grid-settings-input" placeholder="不限制" value="" id="maxChargeInput">
-              <span class="grid-settings-unit">kW</span>
-            </div>
-            <div class="grid-settings-item-hint">范围0.1-100000.0 kW，精确至0.1 kW</div>
-          </div>
-        </div>
-
-        <!-- 能量输出 -->
-        <div class="grid-settings-section-header">
-          <span class="grid-settings-section-title">能量输出</span>
-        </div>
-
-        <div class="grid-settings-section">
-          <div class="grid-settings-item">
-            <div class="grid-settings-item-label">光伏 & aPower</div>
-            <div class="grid-settings-select">
-              <select class="grid-settings-dropdown" id="energyOutputSelect">
-                <option value="pv_apower">光伏 & aPower</option>
-                <option value="pv_only">仅光伏</option>
-              </select>
-              <span class="grid-settings-dropdown-arrow">›</span>
-            </div>
-            <div class="grid-settings-item-desc">
-              aPower将会在允许时间段给电网馈网。如果需要更改，请到自定义速度。
-            </div>
-          </div>
-
-          <div class="grid-settings-item">
-            <div class="grid-settings-item-label">aPower最大允许馈网功率</div>
-            <div class="grid-settings-input-group">
-              <input type="text" class="grid-settings-input" placeholder="不限制" value="" id="maxExportInput">
-              <span class="grid-settings-unit">kW</span>
-            </div>
-            <div class="grid-settings-item-hint">范围0.1-100000.0 kW，精确至0.1 kW</div>
-          </div>
-        </div>
-
-        <!-- 警告提示 -->
-        <div class="grid-settings-warning">
-          <span class="grid-settings-warning-icon">⚠️</span>
-          <span>一些电力公司事业法规要求电网充电不能与电池储网共存</span>
-        </div>
-      </div>
-
-      <!-- 确认按钮 -->
-      <div class="grid-settings-footer">
-        <button class="grid-settings-confirm" id="gridSettingsConfirm">确认</button>
-      </div>
-    </div>
   </div>
 
   <script src="mockdata.js"></script>
