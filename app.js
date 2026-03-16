@@ -220,7 +220,53 @@ function sendMessage(text) {
   // 3. Hide context recommender (will reappear after bot reply)
   hideSuggestions();
 
-  // 4. 检测是否是电网设置查询，如果是则弹出设置面板
+  // 4. 优先检测电网设置精确控制意图（优先级高于 isGridSettingsQuery 和 detectPCSIntent）
+  if (typeof detectGridSettings === 'function') {
+    var gridResult = detectGridSettings(content);
+    if (gridResult.matched) {
+      // 预填控件值
+      if (typeof prefillGridSettings === 'function') {
+        prefillGridSettings(gridResult.settings);
+      }
+      // 渲染提示消息 + Confirmation_Card
+      var tipMsg = document.createElement('div');
+      tipMsg.className = 'message bot';
+      var tipContent = document.createElement('div');
+      tipContent.className = 'md-content';
+      tipContent.textContent = '已为您预填电网设置，请确认或修改后执行';
+      tipMsg.appendChild(tipContent);
+
+      // 追加 Confirmation_Card（电网设置缩略预览样式）
+      if (typeof createConfirmationCard === 'function') {
+        var gridCard = createConfirmationCard(
+          'grid_charge',
+          { name: '电网输入和输出设置', currentValue: '', targetValue: '', unit: '' },
+          function () {
+            // onConfirm
+            persistBotMessage(tipMsg.innerHTML, 'grid_settings_entry');
+            _autoScroll = true;
+            scrollToBottom();
+          },
+          function () {
+            // onCancel
+            persistBotMessage(tipMsg.innerHTML, 'grid_settings_entry');
+            _autoScroll = true;
+            scrollToBottom();
+          }
+        );
+        tipMsg.appendChild(gridCard);
+      }
+
+      messagesEl.appendChild(tipMsg);
+      persistBotMessage(tipMsg.innerHTML, 'grid_settings_entry');
+      _autoScroll = true;
+      scrollToBottom();
+      showSuggestions(currentRole);
+      return;
+    }
+  }
+
+  // 4b. 检测是否是电网设置查询，如果是则弹出设置面板
   if (typeof isGridSettingsQuery === 'function' && isGridSettingsQuery(content)) {
     // 延迟一下让用户看到消息发送
     setTimeout(function () {

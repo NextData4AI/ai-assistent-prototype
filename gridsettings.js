@@ -91,7 +91,35 @@ if (typeof document !== 'undefined') {
     }
 }
 
+/**
+ * 将解析出的电网设置值预填到面板控件中
+ * 仅更新 settings 对象中存在的字段，未指定的控件保持当前值不变
+ * @param {Object} settings - 解析出的设置值对象
+ */
+function prefillGridSettings(settings) {
+    if (!settings || typeof settings !== 'object') return;
+
+    var controlMap = {
+        gridCharge: 'gridChargeSelect',
+        maxCharge: 'maxChargeInput',
+        energyOutput: 'energyOutputSelect',
+        maxExport: 'maxExportInput'
+    };
+
+    var keys = Object.keys(settings);
+    for (var i = 0; i < keys.length; i++) {
+        var field = keys[i];
+        var controlId = controlMap[field];
+        if (!controlId) continue;
+
+        var el = document.getElementById(controlId);
+        if (!el) continue;
+
+        el.value = settings[field];
+    }
+}
+
 // 条件 export：兼容浏览器和 Node (vitest)
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { initGridSettingsPanel, openGridSettingsPanel, isGridSettingsQuery };
+    module.exports = { initGridSettingsPanel, openGridSettingsPanel, isGridSettingsQuery, prefillGridSettings };
 }

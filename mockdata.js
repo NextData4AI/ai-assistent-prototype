@@ -483,6 +483,21 @@ FranklinWH 提供行业领先的保修服务：
     }
   },
   {
+    keywords: ['预填电网', '预填设置', '帮我设置电网参数', '设置电网参数'],
+    roleIds: ['general', 'device'],
+    reply: {
+      type: 'text',
+      complexity: 'simple',
+      content: '已为您预填电网设置，请在面板中确认或修改后点击保存。',
+      source: 'FranklinWH 设备管理手册',
+      cotSteps: [
+        { label: '查询数据', detail: '正在查询 FranklinWH 设备数据…' },
+        { label: '分析数据', detail: '正在分析数据…' },
+        { label: '归纳结果', detail: '正在归纳结果...' }
+      ]
+    }
+  },
+  {
     keywords: ['峰谷', '电价', '策略'],
     roleIds: ['general', 'energy'],
     reply: {
@@ -549,7 +564,45 @@ function getMockReply(message, roleId) {
   };
 }
 
+// 电网设置关键词映射数据
+const GRID_SETTINGS_KEYWORDS = {
+  gridCharge: {
+    field: 'gridCharge',
+    controlId: 'gridChargeSelect',
+    type: 'select',
+    options: [
+      { keywords: ['不允许电网充电', '不允许充电', '不允许'], value: 'disallow' },
+      { keywords: ['允许电网充电', '允许充电', '允许'], value: 'allow' }
+    ]
+  },
+  maxCharge: {
+    field: 'maxCharge',
+    controlId: 'maxChargeInput',
+    type: 'number',
+    keywords: ['取电限制', '充电限制', '取电功率'],
+    unit: 'kW',
+    range: [0.1, 100000.0]
+  },
+  energyOutput: {
+    field: 'energyOutput',
+    controlId: 'energyOutputSelect',
+    type: 'select',
+    options: [
+      { keywords: ['光伏和aPower', '光伏&aPower', '光伏 & aPower', '光伏和apower', '光伏&apower'], value: 'pv_apower' },
+      { keywords: ['仅光伏', '只有光伏'], value: 'pv_only' }
+    ]
+  },
+  maxExport: {
+    field: 'maxExport',
+    controlId: 'maxExportInput',
+    type: 'number',
+    keywords: ['馈网限制', '馈网功率', '馈电限制', '最大馈网'],
+    unit: 'kW',
+    range: [0.1, 100000.0]
+  }
+};
+
 // 条件 export：兼容浏览器和 Node (vitest)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { ROLES, DANMAKU_DATA, PCS_SCENARIOS, MOCK_REPLIES, getMockReply };
+  module.exports = { ROLES, DANMAKU_DATA, PCS_SCENARIOS, MOCK_REPLIES, getMockReply, GRID_SETTINGS_KEYWORDS };
 }

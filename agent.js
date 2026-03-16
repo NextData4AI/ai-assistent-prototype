@@ -218,7 +218,63 @@ function generateFollowUpQuestion(operationType) {
   return questions[operationType] || '请提供更多操作参数信息。';
 }
 
+/**
+ * 从自然语言消息中解析电网设置面板的目标值
+ * @param {string} message - 用户消息文本
+ * @returns {{matched: boolean, settings: GridSettingsValues|null}}
+ */
+function detectGridSettings(message) {
+  if (!message || typeof message !== 'string') {
+    return { matched: false, settings: null };
+  }
+
+  var settings = {};
+  var keywords = (typeof GRID_SETTINGS_KEYWORDS !== 'undefined') ? GRID_SETTINGS_KEYWORDS : {};
+  var keys = Object.keys(keywords);
+
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    var config = keywords[key];
+
+    if (config.type === 'select') {
+      // 下拉选择项：先匹配否定关键词再匹配肯定关键词
+      var matched = false;
+      for (var oi = 0; oi < config.options.length; oi++) {
+        var option = config.options[oi];
+        for (var ki = 0; ki < option.keywords.length; ki++) {
+          if (message.indexOf(option.keywords[ki]) !== -1) {
+            settings[config.field] = option.value;
+            matched = true;
+            break;
+          }
+        }
+        if (matched) break;
+      }
+    } else if (config.type === 'number') {
+      // 数值输入项：匹配关键词后提取附近数值
+      for (var ni = 0; ni < config.keywords.length; ni++) {
+        var kwIdx = message.indexOf(config.keywords[ni]);
+        if (kwIdx !== -1) {
+          // 在关键词之后的文本中提取数值
+          var afterKeyword = message.substring(kwIdx + config.keywords[ni].length);
+          var numMatch = afterKeyword.match(/(\d+(?:\.\d+)?)\s*(?:kW|kw)?/);
+          if (numMatch) {
+            settings[config.field] = parseFloat(numMatch[1]);
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  if (Object.keys(settings).length > 0) {
+    return { matched: true, settings: settings };
+  }
+
+  return { matched: false, settings: null };
+}
+
 // 条件 export：兼容浏览器和 Node (vitest)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { detectPCSIntent, createConfirmationCard, generateFollowUpQuestion };
+  module.exports = { detectPCSIntent, createConfirmationCard, generateFollowUpQuestion, detectGridSettings };
 }

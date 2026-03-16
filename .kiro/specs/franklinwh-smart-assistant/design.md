@@ -66,17 +66,32 @@ sequenceDiagram
     participant COT as cot.js
     participant MD as markdown.js
     participant AGENT as agent.js
+    participant GS as gridsettings.js
 
     U->>APP: 发送消息
-    APP->>MOCK: 匹配 mock 回复
-    MOCK-->>APP: 返回回复数据 (type, content, images, cot_steps)
-    APP->>COT: 创建 CoT 面板 (如有推理步骤)
-    COT-->>APP: CoT 动画完成
-    APP->>MD: 渲染 Markdown 内容
-    MD-->>APP: 返回 HTML
-    alt PCS 操作类消息
-        APP->>AGENT: 创建确认卡片
-        AGENT-->>APP: 用户确认/取消
+    APP->>AGENT: detectGridSettings(message)
+    alt 电网设置精确控制
+        AGENT-->>APP: {matched: true, settings: {...}}
+        APP->>GS: prefillGridSettings(settings)
+        GS-->>APP: 控件值已预填
+        APP->>MD: 渲染提示消息
+        APP->>AGENT: createConfirmationCard('grid_settings', ...)
+        AGENT-->>APP: Confirmation_Card（缩略预览样式）
+        Note over APP: Bot_Message = 提示文字 + Confirmation_Card
+        U->>APP: 点击缩略预览区域
+        APP->>GS: openGridSettingsPanel()
+        Note over GS: 面板已预填好值，供用户查看/修改
+    else 非电网设置
+        APP->>MOCK: 匹配 mock 回复
+        MOCK-->>APP: 返回回复数据 (type, content, images, cot_steps)
+        APP->>COT: 创建 CoT 面板 (如有推理步骤)
+        COT-->>APP: CoT 动画完成
+        APP->>MD: 渲染 Markdown 内容
+        MD-->>APP: 返回 HTML
+        alt PCS 操作类消息
+            APP->>AGENT: 创建确认卡片
+            AGENT-->>APP: 用户确认/取消
+        end
     end
 ```
 
@@ -88,12 +103,13 @@ sequenceDiagram
 ├── app.js              # 主控制器：会话管理、消息收发、事件绑定
 ├── markdown.js         # 轻量 Markdown 解析器
 ├── cot.js              # CoT 推理面板
-├── agent.js            # Agent 工作流 + 确认卡片
+├── agent.js            # Agent 工作流 + 确认卡片 + 电网设置解析
+├── gridsettings.js     # 电网设置面板 + 预填逻辑
 ├── role.js             # 角色选择器
 ├── context.js          # 上下文感知推荐
 ├── danmaku.js          # 弹幕系统
 ├── imageviewer.js      # 图片查看器 (缩放 + 全屏)
-└── mockdata.js         # 所有 mock 数据
+└── mockdata.js         # 所有 mock 数据 (含 GRID_SETTINGS_KEYWORDS)
 ```
 
 ## 组件与接口
@@ -176,7 +192,55 @@ function detectPCSIntent(message) { ... }
  * @returns {HTMLElement}
  */
 function createConfirmationCard(operationType, params, onConfirm, onCancel) { ... }
+
+/**
+ * 从自然语言消息中解析电网设置面板的目标值
+ * 支持解析四个设置项：电网输入（下拉）、电网取电限制（数值 kW）、能量输出（下拉）、电网馈网限制（数值 kW）
+ * 用户可以在一条消息中指定一个或多个设置项，未提及的设置项不包含在返回结果中
+ * @param {string} message - 用户消息文本
+ * @returns {{matched: boolean, settings: GridSettingsValues|null}}
+ *   matched: 是否识别到电网设置意图
+ *   settings: 解析出的设置值对象（仅包含用户明确指定的字段），无匹配时为 null
+ */
+function detectGridSettings(message) { ... }
 ```
+
+**`detectGridSettings` 解析逻辑：**
+
+基于 `GRID_SETTINGS_KEYWORDS` 关键词映射，从用户自然语言中提取设置项目标值：
+
+| 设置项 | 控件类型 | 关键词匹配规则 | 提取值 |
+|--------|---------|---------------|--------|
+| 电网输入 `gridCharge` | 下拉选择 | "不允许电网充电"/"不允许" → `"disallow"`；"允许电网充电"/"允许" → `"allow"` | `"allow"` \| `"disallow"` |
+| 电网取电限制 `maxCharge` | 数值输入 kW | "取电限制" + 数值 + "kW"/"kw"（可选） | `number` (0.1-100000.0) |
+| 能量输出 `energyOutput` | 下拉选择 | "光伏和aPower"/"光伏&aPower"/"光伏 & aPower" → `"pv_apower"`；"仅光伏" → `"pv_only"` | `"pv_apower"` \| `"pv_only"` |
+| 电网馈网限制 `maxExport` | 数值输入 kW | "馈网限制"/"馈网功率" + 数值 + "kW"/"kw"（可选） | `number` (0.1-100000.0) |
+
+解析优先级：先匹配"不允许"再匹配"允许"（避免"不允许"被"允许"误匹配）。数值提取使用正则 `(\d+(?:\.\d+)?)\s*(?:kW|kw)?`。
+
+返回值示例：
+```javascript
+// "我不允许电网充电，取电限制30kW"
+{ matched: true, settings: { gridCharge: 'disallow', maxCharge: 30 } }
+
+// "光伏和aPower都要给电网馈电，馈网限制50kW"
+{ matched: true, settings: { energyOutput: 'pv_apower', maxExport: 50 } }
+
+// "你好"（无电网设置意图）
+{ matched: false, settings: null }
+```
+
+**电网设置精确控制消息的 Bot_Message 渲染流程（Req 5.14, 5.15）：**
+
+当 `detectGridSettings` 返回 `matched: true` 时，`app.js` 的处理流程为：
+1. 调用 `prefillGridSettings(settings)` 预填面板控件值
+2. 在 Bot_Message 中渲染提示文字（如"已为您预填电网设置..."）
+3. 在提示文字下方追加 `createConfirmationCard` 生成的 Confirmation_Card（电网设置缩略预览样式 `grid-settings-entry-card`）
+4. Confirmation_Card 包含：
+   - 缩略预览区域（`grid-settings-entry-content`）：显示"⚡ 电网输入和输出设置›"入口，预览内容反映用户指定的设置值
+   - 操作按钮区域（`grid-settings-entry-actions`）："取消"和"确认执行"按钮
+5. 用户点击缩略预览区域 → 调用 `openGridSettingsPanel()` 弹出预填好值的 Grid_Settings_Panel
+6. 不再直接自动弹出面板，改为通过 Confirmation_Card 入口让用户主动打开
 
 四类 PCS 操作场景：
 | 操作类型 | 关键词匹配 | 参数 |
@@ -253,7 +317,53 @@ function hideDanmaku() { ... }
 | 2 | 操作能力 | 绿色 `#22c55e` | 25s |
 | 3 | 服务能力 | 橙色 `#f59e0b` | 35s |
 
-### 7. ImageViewer (`imageviewer.js`)
+### 7. Grid_Settings_Panel (`gridsettings.js`)
+
+```javascript
+/**
+ * 初始化电网设置面板（已有）
+ */
+function initGridSettingsPanel() { ... }
+
+/**
+ * 打开电网设置面板（已有）
+ */
+function openGridSettingsPanel() { ... }
+
+/**
+ * 检测是否是电网设置相关的查询（已有）
+ * @param {string} message - 用户消息
+ * @returns {boolean}
+ */
+function isGridSettingsQuery(message) { ... }
+
+/**
+ * 将解析出的电网设置值预填到面板控件中
+ * 仅更新 settings 对象中存在的字段，未指定的控件保持当前值不变
+ * @param {GridSettingsValues} settings - 解析出的设置值对象
+ *   settings.gridCharge?: 'allow' | 'disallow' → 设置 #gridChargeSelect 的 value
+ *   settings.maxCharge?: number → 设置 #maxChargeInput 的 value
+ *   settings.energyOutput?: 'pv_apower' | 'pv_only' → 设置 #energyOutputSelect 的 value
+ *   settings.maxExport?: number → 设置 #maxExportInput 的 value
+ */
+function prefillGridSettings(settings) { ... }
+```
+
+**预填逻辑：**
+- 遍历 `settings` 对象的键，仅对存在的字段执行 DOM 操作
+- 下拉选择项（`gridCharge`、`energyOutput`）：设置 `<select>` 元素的 `value` 属性
+- 数值输入项（`maxCharge`、`maxExport`）：设置 `<input>` 元素的 `value` 属性
+- 未包含在 `settings` 中的字段不做任何修改，保持控件当前默认值
+
+**控件 ID 映射：**
+| settings 字段 | DOM 控件 ID | 控件类型 |
+|--------------|------------|---------|
+| `gridCharge` | `#gridChargeSelect` | `<select>` |
+| `maxCharge` | `#maxChargeInput` | `<input type="text">` |
+| `energyOutput` | `#energyOutputSelect` | `<select>` |
+| `maxExport` | `#maxExportInput` | `<input type="text">` |
+
+### 8. ImageViewer (`imageviewer.js`)
 
 ```javascript
 /**
@@ -375,6 +485,59 @@ const PCS_SCENARIOS = {
   }
 };
 ```
+
+### 电网设置关键词映射数据
+
+```javascript
+/**
+ * @typedef {Object} GridSettingsValues
+ * @property {'allow'|'disallow'} [gridCharge] - 电网输入：允许/不允许电网充电
+ * @property {number} [maxCharge] - 电网取电限制 (kW)，范围 0.1-100000.0
+ * @property {'pv_apower'|'pv_only'} [energyOutput] - 能量输出：光伏 & aPower / 仅光伏
+ * @property {number} [maxExport] - 电网馈网限制 (kW)，范围 0.1-100000.0
+ */
+
+const GRID_SETTINGS_KEYWORDS = {
+  gridCharge: {
+    field: 'gridCharge',
+    controlId: 'gridChargeSelect',
+    type: 'select',
+    options: [
+      { keywords: ['不允许电网充电', '不允许充电', '不允许'], value: 'disallow' },
+      { keywords: ['允许电网充电', '允许充电', '允许'], value: 'allow' }
+    ]
+  },
+  maxCharge: {
+    field: 'maxCharge',
+    controlId: 'maxChargeInput',
+    type: 'number',
+    keywords: ['取电限制', '充电限制', '取电功率'],
+    unit: 'kW',
+    range: [0.1, 100000.0]
+  },
+  energyOutput: {
+    field: 'energyOutput',
+    controlId: 'energyOutputSelect',
+    type: 'select',
+    options: [
+      { keywords: ['光伏和aPower', '光伏&aPower', '光伏 & aPower', '光伏和apower', '光伏&apower'], value: 'pv_apower' },
+      { keywords: ['仅光伏', '只有光伏'], value: 'pv_only' }
+    ]
+  },
+  maxExport: {
+    field: 'maxExport',
+    controlId: 'maxExportInput',
+    type: 'number',
+    keywords: ['馈网限制', '馈网功率', '馈电限制', '最大馈网'],
+    unit: 'kW',
+    range: [0.1, 100000.0]
+  }
+};
+```
+
+**关键词匹配优先级规则：**
+- 下拉选择项：先匹配否定关键词（"不允许"），再匹配肯定关键词（"允许"），避免"不允许电网充电"被"允许"误匹配
+- 数值输入项：匹配关键词后，在关键词附近提取数值，正则为 `(\d+(?:\.\d+)?)\s*(?:kW|kw)?`
 
 
 ## 正确性属性
@@ -507,6 +670,24 @@ const PCS_SCENARIOS = {
 
 **Validates: Requirements 8.2**
 
+### Property 22: 电网设置自然语言解析
+
+*For any* 包含电网设置关键词的用户消息，`detectGridSettings` 应返回 `matched: true`，且 `settings` 对象中仅包含用户消息中明确提及的设置项字段。*For any* 不包含电网设置关键词的消息，应返回 `matched: false, settings: null`。
+
+**Validates: Requirements 5.9**
+
+### Property 23: 电网设置预填正确性（含部分设置）
+
+*For any* `GridSettingsValues` 对象（完整或部分），调用 `prefillGridSettings(settings)` 后，`settings` 中存在的字段对应的 DOM 控件值应等于指定值，`settings` 中不存在的字段对应的 DOM 控件值应保持调用前的原始值不变。
+
+**Validates: Requirements 5.10, 5.13**
+
+### Property 24: 电网设置精确控制消息显示 Confirmation_Card
+
+*For any* 用户消息，若 `detectGridSettings` 返回 `matched: true`，则 Bot_Message 的渲染输出应包含一个 `grid-settings-entry-card` 类型的 Confirmation_Card 元素，该卡片应包含"⚡ 电网输入和输出设置"入口区域以及"取消"和"确认执行"两个按钮。
+
+**Validates: Requirements 5.14**
+
 
 ## 错误处理
 
@@ -519,6 +700,13 @@ const PCS_SCENARIOS = {
 - **无匹配关键词**：`detectPCSIntent` 返回 `{matched: false, type: null, params: null}`
 - **缺少操作参数**：检测到意图但参数不完整时，返回 `{matched: true, type: '...', params: null}`，触发追问流程（Req 5.8）
 - **多重意图冲突**：取第一个匹配的操作类型
+
+### 电网设置解析
+- **无匹配关键词**：`detectGridSettings` 返回 `{matched: false, settings: null}`
+- **部分设置**：仅返回用户明确指定的字段，未提及的字段不包含在 `settings` 对象中（Req 5.13）
+- **数值超出范围**：提取的数值不做范围校验（由面板控件自身的 hint 提示用户合法范围）
+- **DOM 控件不存在**：`prefillGridSettings` 在设置值前检查控件是否存在，不存在则跳过
+- **Confirmation_Card 交互**：精确控制消息的 Bot_Message 中显示 Confirmation_Card，用户通过点击缩略预览区域打开预填好值的面板（Req 5.14, 5.15）
 
 ### 会话存储
 - **localStorage 不可用**：`loadSessions` 的 try-catch 已处理，返回空数组
@@ -567,6 +755,13 @@ const PCS_SCENARIOS = {
    - 点击取消显示"操作已取消" (Req 5.5)
    - 四类 PCS 场景均可触发 (Req 5.6)
    - 缺少参数时触发追问 (Req 5.8)
+   - `detectGridSettings("我不允许电网充电")` 返回 `{matched: true, settings: {gridCharge: 'disallow'}}` (Req 5.9)
+   - `detectGridSettings("取电限制30kW，馈网限制50kW")` 返回两个数值字段 (Req 5.9)
+   - `prefillGridSettings` 预填后打开面板，面板 overlay 具有 active 类 (Req 5.11)
+   - 预填部分设置后，未指定控件保持默认值 (Req 5.13)
+   - 电网设置精确控制消息的 Bot_Message 中包含 `grid-settings-entry-card` 类型的 Confirmation_Card (Req 5.14)
+   - Confirmation_Card 包含"⚡ 电网输入和输出设置"入口和"取消"/"确认执行"按钮 (Req 5.14)
+   - 点击 Confirmation_Card 缩略预览区域调用 `openGridSettingsPanel()` 弹出预填好值的面板 (Req 5.15)
 
 4. **角色选择器示例测试**
    - 包含 4 个预设角色 (Req 6.2)
@@ -621,3 +816,6 @@ const PCS_SCENARIOS = {
 | 19 | 上下文推荐数量约束 | 随机角色 + 上下文 |
 | 20 | 弹幕显示条件 | 随机会话状态 (有/无消息) |
 | 21 | 弹幕类别颜色映射 | 随机弹幕项 |
+| 22 | 电网设置自然语言解析 | 随机消息文本 (含/不含电网设置关键词 + 随机数值) |
+| 23 | 电网设置预填正确性（含部分设置） | 随机 GridSettingsValues 对象 (完整/部分字段组合) |
+| 24 | 电网设置精确控制消息显示 Confirmation_Card | 随机含电网设置关键词的消息文本 |

@@ -259,6 +259,70 @@
 - [x] 13. 最终检查点 - 确保所有测试通过
   - Ensure all tests pass, ask the user if questions arise.
 
+- [-] 14. 实现电网设置自然语言精确控制（需求 5.9-5.13）
+  - [x] 14.1 在 `mockdata.js` 中添加 `GRID_SETTINGS_KEYWORDS` 数据和电网设置相关 mock 回复
+    - 添加 `GRID_SETTINGS_KEYWORDS` 常量，包含四个设置项的关键词映射配置（gridCharge、maxCharge、energyOutput、maxExport）
+    - 每个设置项定义 `field`、`controlId`、`type`（select/number）、关键词列表和选项值
+    - 下拉选择项（gridCharge、energyOutput）包含 `options` 数组，每个选项含 `keywords` 和 `value`
+    - 数值输入项（maxCharge、maxExport）包含 `keywords`、`unit`、`range`
+    - 添加电网设置精确控制场景的 mock 回复条目（如"已为您预填电网设置，请在面板中确认"）
+    - 在条件 export 中导出 `GRID_SETTINGS_KEYWORDS`
+    - _Requirements: 5.9, 5.10_
+
+  - [x] 14.2 在 `agent.js` 中实现 `detectGridSettings(message)` 函数
+    - 基于 `GRID_SETTINGS_KEYWORDS` 关键词映射，从用户自然语言中提取电网设置目标值
+    - 下拉选择项匹配：先匹配否定关键词（"不允许"），再匹配肯定关键词（"允许"），避免误匹配
+    - 数值输入项匹配：匹配关键词后提取附近数值，正则为 `(\d+(?:\.\d+)?)\s*(?:kW|kw)?`
+    - 返回 `{matched: boolean, settings: GridSettingsValues|null}`，`settings` 仅包含用户明确指定的字段
+    - 无匹配时返回 `{matched: false, settings: null}`
+    - 支持一条消息中同时指定多个设置项
+    - 在条件 export 中导出 `detectGridSettings`
+    - _Requirements: 5.9, 5.13_
+
+  - [x] 14.3 在 `gridsettings.js` 中实现 `prefillGridSettings(settings)` 函数
+    - 遍历 `settings` 对象的键，仅对存在的字段执行 DOM 操作
+    - 下拉选择项（`gridCharge` → `#gridChargeSelect`，`energyOutput` → `#energyOutputSelect`）：设置 `<select>` 的 `value`
+    - 数值输入项（`maxCharge` → `#maxChargeInput`，`maxExport` → `#maxExportInput`）：设置 `<input>` 的 `value`
+    - 未包含在 `settings` 中的字段不做任何修改，保持控件当前默认值
+    - 设置值前检查 DOM 控件是否存在，不存在则跳过
+    - 在条件 export 中导出 `prefillGridSettings`
+    - _Requirements: 5.10, 5.13_
+
+  - [x] 14.4 在 `app.js` 中集成电网设置精确控制流程（含 Confirmation_Card 显示）
+    - 在 `sendMessage` 流程中，优先调用 `detectGridSettings(content)` 检测电网设置意图
+    - 若 `matched: true`：
+      1. 调用 `prefillGridSettings(settings)` 预填面板控件值
+      2. 在 Bot_Message 中渲染提示文字（如"已为您预填电网设置，请确认或修改后执行"）
+      3. 在提示文字下方追加 `createConfirmationCard` 生成的 Confirmation_Card（电网设置缩略预览样式 `grid-settings-entry-card`），包含"⚡ 电网输入和输出设置›"入口和"取消"/"确认执行"按钮
+      4. 用户点击缩略预览区域 → 调用 `openGridSettingsPanel()` 弹出预填好值的 Grid_Settings_Panel
+      5. 不再直接自动弹出面板，改为通过 Confirmation_Card 入口让用户主动打开
+    - 电网设置精确控制分支优先级高于 `isGridSettingsQuery` 和 `detectPCSIntent` 分支
+    - _Requirements: 5.10, 5.11, 5.12, 5.14, 5.15_
+
+  - [ ]* 14.5 编写 Property 22 属性测试（电网设置自然语言解析）
+    - **Property 22: 电网设置自然语言解析**
+    - 随机生成含/不含电网设置关键词的消息文本和随机数值
+    - 验证含关键词时返回 `matched: true`，`settings` 仅包含用户消息中明确提及的字段
+    - 验证不含关键词时返回 `matched: false, settings: null`
+    - **Validates: Requirements 5.9**
+
+  - [ ]* 14.6 编写 Property 23 属性测试（电网设置预填正确性）
+    - **Property 23: 电网设置预填正确性（含部分设置）**
+    - 随机生成完整或部分的 `GridSettingsValues` 对象
+    - 验证 `prefillGridSettings` 调用后，`settings` 中存在的字段对应 DOM 控件值等于指定值
+    - 验证 `settings` 中不存在的字段对应 DOM 控件值保持调用前的原始值不变
+    - **Validates: Requirements 5.10, 5.13**
+
+  - [ ]* 14.7 编写 Property 24 属性测试（电网设置精确控制消息显示 Confirmation_Card）
+    - **Property 24: 电网设置精确控制消息显示 Confirmation_Card**
+    - 随机生成含电网设置关键词的消息文本
+    - 验证 `detectGridSettings` 返回 `matched: true` 时，Bot_Message 渲染输出包含 `grid-settings-entry-card` 类型的 Confirmation_Card
+    - 验证卡片包含"⚡ 电网输入和输出设置"入口区域和"取消"/"确认执行"按钮
+    - **Validates: Requirements 5.14**
+
+- [ ] 15. 检查点 - 确保电网设置精确控制功能测试通过
+  - Ensure all tests pass, ask the user if questions arise.
+
 ## Notes
 
 - 标记 `*` 的子任务为可选测试任务，可跳过以加速 MVP 交付
