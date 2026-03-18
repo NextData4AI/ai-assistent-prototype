@@ -220,6 +220,157 @@ function sendMessage(text) {
   // 3. Hide context recommender (will reappear after bot reply)
   hideSuggestions();
 
+  // 3b. 合规引擎检测（ITC/SGIP 退税等 → 自动设置电网参数 + Confirmation Card）
+  if (typeof isComplianceQuery === 'function' && isComplianceQuery(content)) {
+    var compResult = processComplianceRequest(content, {});
+    if (compResult.statusCheck.result === 'passed' && compResult.actionPayload && compResult.actionPayload.commands.length > 0) {
+      // 将合规命令映射为电网面板预填值
+      var compSettings = {};
+      for (var ci = 0; ci < compResult.actionPayload.commands.length; ci++) {
+        var cmd = compResult.actionPayload.commands[ci];
+        if (cmd.parameter === 'grid_charging' && cmd.value === false) {
+          compSettings.gridCharge = 'disallow';
+        }
+        if (cmd.parameter === 'energy_export_mode' && cmd.value === 'only_solar') {
+          compSettings.energyOutput = 'pv_only';
+        }
+        if (cmd.parameter === 'energy_export_mode' && cmd.value === 'full_export') {
+          compSettings.energyOutput = 'pv_apower';
+        }
+      }
+      // 预填面板控件
+      if (typeof prefillGridSettings === 'function' && Object.keys(compSettings).length > 0) {
+        prefillGridSettings(compSettings);
+      }
+      // 构建 bot 消息：合规回复文本 + Confirmation Card
+      var compBotMsg = document.createElement('div');
+      compBotMsg.className = 'message bot';
+      messagesEl.appendChild(compBotMsg);
+
+      // CoT 动画（setting 意图 + 参数详情）
+      var compParamDetail = '';
+      for (var pi = 0; pi < compResult.actionPayload.commands.length; pi++) {
+        var pc = compResult.actionPayload.commands[pi];
+        if (pi < compResult.actionPayload.commands.length - 1) compParamDetail += ', ';
+      }
+      createCoTPanel(compBotMsg, null, function () {
+        // CoT 完成 → 渲染合规回复
+        var compContentDiv = document.createElement('div');
+        compContentDiv.className = 'md-content';
+        compContentDiv.innerHTML = renderMarkdown(compResult.finalResponse);
+        compBotMsg.appendChild(compContentDiv);
+
+        // 如果有警告，追加警告
+        if (compResult.warnings && compResult.warnings.length > 0) {
+          var warnDiv = document.createElement('div');
+          warnDiv.className = 'md-content compliance-warning';
+          warnDiv.innerHTML = renderMarkdown(compResult.warnings.join('\n\n'));
+          compBotMsg.appendChild(warnDiv);
+        }
+
+        // 追加简洁入口卡片（和"电网输入输出怎么设置"场景一致）
+        var compCard = document.createElement('div');
+        compCard.className = 'grid-settings-entry-card';
+        compCard.innerHTML =
+          '<div class="grid-settings-entry-content">' +
+          '<div class="grid-settings-entry-header">⚡ 电网输入和输出设置</div>' +
+          '<div class="grid-settings-entry-arrow">›</div>' +
+          '</div>' +
+          '<div class="grid-settings-entry-actions">' +
+          '<button class="grid-settings-entry-btn cancel">取消</button>' +
+          '<button class="grid-settings-entry-btn confirm">确认执行</button>' +
+          '</div>';
+
+        var compContentArea = compCard.querySelector('.grid-settings-entry-content');
+        var compConfirmBtn = compCard.querySelector('.grid-settings-entry-btn.confirm');
+        var compCancelBtn = compCard.querySelector('.grid-settings-entry-btn.cancel');
+
+        // 点击内容区域打开设置面板
+        compContentArea.addEventListener('click', function () {
+          if (typeof openGridSettingsPanel === 'function') {
+            openGridSettingsPanel();
+          }
+        });
+
+        // 确认按钮
+        compConfirmBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (typeof validateGridSettings === 'function') {
+            var vr = validateGridSettings();
+            if (!vr.valid) {
+              if (typeof highlightEmptyControls === 'function') {
+                highlightEmptyControls(vr.emptyFields);
+              }
+              if (typeof openGridSettingsPanel === 'function') {
+                openGridSettingsPanel();
+              }
+              return;
+            }
+          }
+          var actionsEl = compCard.querySelector('.grid-settings-entry-actions');
+          actionsEl.innerHTML =
+            '<div style="width:100%;text-align:center;padding:8px 0;">' +
+            '<div class="cot-spinner" style="margin:0 auto;"></div>' +
+            '<div style="font-size:12px;color:#888;margin-top:6px;">正在执行...</div>' +
+            '</div>';
+          setTimeout(function () {
+            actionsEl.innerHTML =
+              '<div style="width:100%;text-align:center;padding:10px 0;color:#34a853;font-size:14px;">' +
+              '✅ 执行成功' +
+              '</div>';
+            persistBotMessage(compBotMsg.innerHTML, 'compliance_action');
+            _autoScroll = true;
+            scrollToBottom();
+          }, 1500);
+        });
+
+        // 取消按钮
+        compCancelBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          compCard.innerHTML =
+            '<div style="padding:12px 16px;text-align:center;color:#888;font-size:13px;">' +
+            '操作已取消' +
+            '</div>';
+          persistBotMessage(compBotMsg.innerHTML, 'compliance_action');
+          _autoScroll = true;
+          scrollToBottom();
+        });
+
+        compBotMsg.appendChild(compCard);
+
+        persistBotMessage(compBotMsg.innerHTML, 'compliance_action');
+        _autoScroll = true;
+        scrollToBottom();
+        showSuggestions(currentRole);
+
+        // 自动滑出电网设置面板（已预填合规参数）
+        setTimeout(function () {
+          if (typeof openGridSettingsPanel === 'function') {
+            openGridSettingsPanel();
+          }
+        }, 300);
+      }, { intentType: 'setting', userQuery: content, paramDetail: compParamDetail });
+      _autoScroll = true;
+      scrollToBottom();
+      return;
+    }
+    // 如果被拦截（step 1-3），显示拦截消息
+    if (compResult.statusCheck.result === 'blocked') {
+      var blockMsg = document.createElement('div');
+      blockMsg.className = 'message bot';
+      var blockContent = document.createElement('div');
+      blockContent.className = 'md-content';
+      blockContent.textContent = compResult.finalResponse;
+      blockMsg.appendChild(blockContent);
+      messagesEl.appendChild(blockMsg);
+      persistBotMessage(blockMsg.innerHTML, 'text');
+      _autoScroll = true;
+      scrollToBottom();
+      showSuggestions(currentRole);
+      return;
+    }
+  }
+
   // 4. 优先检测电网设置精确控制意图（优先级高于 isGridSettingsQuery 和 detectPCSIntent）
   if (typeof detectGridSettings === 'function') {
     var gridResult = detectGridSettings(content);
@@ -284,16 +435,17 @@ function sendMessage(text) {
   botMsg.className = 'message bot';
   messagesEl.appendChild(botMsg);
 
-  // 7. If reply has cotSteps → show CoT panel first, then render content
+  // 7. If reply has cotSteps, show CoT panel first with intent classification
   if (reply.cotSteps && reply.cotSteps.length > 0) {
-    createCoTPanel(botMsg, reply.cotSteps, function () {
-      // CoT animation complete → render content
+    var detectedIntent = (typeof classifyIntent === 'function') ? classifyIntent(content) : 'knowledge';
+    createCoTPanel(botMsg, null, function () {
+      // CoT animation complete, render content
       _renderBotContent(botMsg, reply, content);
-    });
+    }, { intentType: detectedIntent, userQuery: content });
     _autoScroll = true;
     scrollToBottom();
   } else {
-    // No CoT steps → render content directly
+    // No CoT steps, render content directly
     _renderBotContent(botMsg, reply, content);
   }
 }
@@ -360,6 +512,19 @@ function _renderBotContent(botMsg, reply, userText) {
     // 确认按钮
     confirmBtn.addEventListener('click', function (e) {
       e.stopPropagation();
+      // 校验面板 4 个控件是否都已填充
+      if (typeof validateGridSettings === 'function') {
+        var validationResult = validateGridSettings();
+        if (!validationResult.valid) {
+          if (typeof highlightEmptyControls === 'function') {
+            highlightEmptyControls(validationResult.emptyFields);
+          }
+          if (typeof openGridSettingsPanel === 'function') {
+            openGridSettingsPanel();
+          }
+          return;
+        }
+      }
       // 替换按钮区域为执行进度
       const actionsEl = settingsCard.querySelector('.grid-settings-entry-actions');
       actionsEl.innerHTML =

@@ -122,6 +122,20 @@ function createConfirmationCard(operationType, params, onConfirm, onCancel) {
 
     gridConfirmBtn.addEventListener('click', function (e) {
       e.stopPropagation();
+      // 校验面板 4 个控件是否都已填充
+      if (typeof validateGridSettings === 'function') {
+        var validationResult = validateGridSettings();
+        if (!validationResult.valid) {
+          // 高亮空控件，打开面板让用户补全
+          if (typeof highlightEmptyControls === 'function') {
+            highlightEmptyControls(validationResult.emptyFields);
+          }
+          if (typeof openGridSettingsPanel === 'function') {
+            openGridSettingsPanel();
+          }
+          return;
+        }
+      }
       var actionsEl = card.querySelector('.grid-settings-entry-actions');
       actionsEl.innerHTML =
         '<div style="width:100%;text-align:center;padding:8px 0;">' +

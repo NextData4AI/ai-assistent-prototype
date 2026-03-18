@@ -117,6 +117,34 @@ const PCS_SCENARIOS = {
 
 // Mock 回复数据库
 const MOCK_REPLIES = [
+  // ===== 非能力范围回复 =====
+  {
+    keywords: ['放音乐', '播放音乐', '放歌', '播放歌曲', '唱歌', '讲笑话', '天气预报', '今天天气', '放个音乐', '来首歌', '来个音乐'],
+    roleIds: ['general', 'device', 'energy', 'service', 'compliance'],
+    reply: {
+      type: 'text',
+      complexity: 'simple',
+      content: '对不起，我不具备这方面的能力。',
+      source: 'FranklinWH 智能助手',
+      cotSteps: []
+    }
+  },
+  // ===== ITC/SGIP 退税设置回复 =====
+  {
+    keywords: ['申请 ITC', '申请ITC', 'ITC 和 SGIP', 'ITC和SGIP', 'SGIP 退税', 'SGIP退税', 'ITC 退税', 'ITC退税'],
+    roleIds: ['general', 'device', 'energy', 'compliance'],
+    reply: {
+      type: 'markdown',
+      complexity: 'simple',
+      content: '好的，为了确保您符合 ITC 和 SGIP 的联合退税要求，我已关闭电网充电即电网充电模式设为"仅限光伏"。\n\n⚠️ 注意事项：ITC/SGIP 政策要求电池 100% 来源于光伏，电网充电功能已被强制关闭。',
+      source: 'FranklinWH 能源合规指南',
+      cotSteps: [
+        { label: '查询数据', detail: '正在查询 FranklinWH 设备数据…' },
+        { label: '分析数据', detail: '正在分析数据…' },
+        { label: '归纳结果', detail: '正在归纳结果...' }
+      ]
+    }
+  },
   // ===== complex 回复 =====
   {
     keywords: ['电池', 'battery', '原理', '工作', 'apower', '安装'],

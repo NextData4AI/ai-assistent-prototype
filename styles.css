@@ -1217,6 +1217,33 @@ body {
   }
 }
 
+/* ===== CoT Intent Badge & Query Box ===== */
+.cot-intent-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+  margin: 10px 14px 6px;
+  letter-spacing: 0.5px;
+}
+
+.cot-user-query {
+  margin: 4px 14px 8px;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+  border: 1px solid #e8e8e8;
+}
+
+.cot-step-item .cot-step-text {
+  transition: color 0.15s, font-weight 0.15s;
+}
+
 /* ===== Danmaku Banner (弹幕系统) ===== */
 .danmaku-bar {
   overflow: hidden;
@@ -1971,8 +1998,22 @@ body {
   background: #cc7700;
 }
 
+/* 校验错误状态 - 红色边框 */
+.grid-settings-error {
+  border-color: #e53935 !important;
+  box-shadow: 0 0 0 1px #e53935;
+  animation: gridSettingsShake 0.4s ease;
+}
+
+@keyframes gridSettingsShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
 /* ===== Grid Settings Panel 完善版 ===== */
-.grid-settings-header {
   background: #f5f5f5 !important;
   border-bottom: 1px solid #e0e0e0 !important;
 }
