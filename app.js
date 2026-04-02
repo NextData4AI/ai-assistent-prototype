@@ -114,7 +114,26 @@ function renderSidebarConversations(filter = '') {
 }
 sidebarConversations.addEventListener('click', (e) => {
   const del = e.target.closest('.sidebar-conv-delete');
-  if (del) { e.stopPropagation(); deleteSession(del.dataset.delete); if (del.dataset.delete === currentSessionId) startNewChat(); else renderSidebarConversations(); return; }
+  if (del) {
+    e.stopPropagation();
+    const deleteId = del.dataset.delete;
+    const overlay = $('deleteConfirmOverlay');
+    overlay.classList.add('active');
+    const onConfirm = () => {
+      overlay.classList.remove('active');
+      deleteSession(deleteId);
+      if (deleteId === currentSessionId) startNewChat(); else renderSidebarConversations();
+      cleanup();
+    };
+    const onCancel = () => { overlay.classList.remove('active'); cleanup(); };
+    const cleanup = () => {
+      $('deleteConfirmBtn').removeEventListener('click', onConfirm);
+      $('deleteCancelBtn').removeEventListener('click', onCancel);
+    };
+    $('deleteConfirmBtn').addEventListener('click', onConfirm);
+    $('deleteCancelBtn').addEventListener('click', onCancel);
+    return;
+  }
   const item = e.target.closest('.sidebar-conv-item');
   if (item) showChat(item.dataset.id);
 });
